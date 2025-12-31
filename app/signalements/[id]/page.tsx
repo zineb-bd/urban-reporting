@@ -65,6 +65,13 @@ interface SignalementUser {
   role: string
 }
 
+interface PhotoIntervention {
+  id: number
+  photoUrl: string
+  dateAjout: string
+  technicien: SignalementUser
+}
+
 interface Signalement {
   id: number
   titre: string
@@ -114,6 +121,7 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
   const [newPhotoPreview, setNewPhotoPreview] = useState<string | null>(null)
   const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [photosIntervention, setPhotosIntervention] = useState<PhotoIntervention[]>([])
 
   // Icône personnalisée de pin rouge pour le marqueur
   const customIcon = useMemo(() => {
@@ -209,6 +217,26 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
         } catch (commentError: any) {
           console.error("❌ Erreur lors de la récupération des commentaires:", commentError)
           // Ne pas bloquer l'affichage de la page si la récupération des commentaires échoue
+        }
+
+        // Récupérer les photos d'intervention
+        try {
+          const photosResponse = await fetch(`${apiUrl}/api/signalements/${id}/photos-intervention`, {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          })
+
+          if (photosResponse.ok) {
+            const photosData = await photosResponse.json()
+            setPhotosIntervention(photosData || [])
+            console.log(`✅ ${photosData?.length || 0} photo(s) d'intervention récupérée(s)`)
+          }
+        } catch (photosError: any) {
+          console.error("❌ Erreur lors de la récupération des photos d'intervention:", photosError)
+          // Ne pas bloquer l'affichage de la page si la récupération des photos échoue
         }
 
         // Si l'utilisateur est admin, récupérer la liste des techniciens depuis la base de données
@@ -625,13 +653,14 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
           </div>
         )}
 
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Content */}
-          <div className="lg:col-span-2">
-            <Card className="mb-6">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Header Card */}
+            <Card>
               <CardHeader>
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Badge variant={priorityInfo.variant}>{priorityInfo.label}</Badge>
                     <div
                       className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs text-white ${statusInfo.color}`}
@@ -642,115 +671,127 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
                   </div>
                   <span className="text-sm text-muted-foreground">#{signalement.id}</span>
                 </div>
-                <CardTitle className="text-2xl">{signalement.titre}</CardTitle>
-                <CardDescription className="flex items-center gap-4 pt-2">
+                <CardTitle className="text-2xl mb-3">{signalement.titre}</CardTitle>
+                <CardDescription className="flex flex-wrap items-center gap-4">
                   <span className="flex items-center gap-1">
                     <User className="h-4 w-4" />
                     {signalement.user.prenom} {signalement.user.nom}
                   </span>
                   <span className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    {new Date(signalement.dateCreation).toLocaleDateString("fr-FR")}
+                    {new Date(signalement.dateCreation).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
                   </span>
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="relative">
-                  {signalement.photoUrl ? (
-                    <div className="flex justify-center">
-                      <div className="max-w-2xl w-full border border-border rounded-lg overflow-hidden bg-muted/50 p-4 relative group">
-                        <img
-                          src={signalement.photoUrl}
-                          alt={signalement.titre}
-                          className="w-full h-auto rounded-md object-contain max-h-[500px] mx-auto"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement
-                            target.src = "/placeholder.svg"
-                            target.onerror = null
-                          }}
-                        />
-                        {canEditPhoto && (
-                          <Dialog open={showPhotoUpload} onOpenChange={setShowPhotoUpload}>
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <Camera className="h-4 w-4 mr-2" />
-                                Changer la photo
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Changer la photo du signalement</DialogTitle>
-                                <DialogDescription>
-                                  Sélectionnez une nouvelle photo pour ce signalement
-                                </DialogDescription>
-                              </DialogHeader>
-                              <div className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                  <Label htmlFor="photo">Nouvelle photo</Label>
-                                  <Input
-                                    id="photo"
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handlePhotoChange}
-                                    className="cursor-pointer"
-                                  />
-                                  <p className="text-xs text-muted-foreground">
-                                    PNG, JPG jusqu'à 10MB
-                                  </p>
-                                </div>
-                                {newPhotoPreview && (
-                                  <div className="space-y-2">
-                                    <Label>Aperçu</Label>
-                                    <div className="border rounded-lg overflow-hidden">
-                                      <img
-                                        src={newPhotoPreview}
-                                        alt="Aperçu"
-                                        className="w-full h-64 object-contain"
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                              <DialogFooter>
-                                <Button
-                                  variant="outline"
-                                  onClick={() => {
-                                    setShowPhotoUpload(false)
-                                    setNewPhotoPreview(null)
-                                    setNewPhotoFile(null)
-                                  }}
-                                >
-                                  Annuler
-                                </Button>
-                                <Button
-                                  onClick={handlePhotoUpload}
-                                  disabled={!newPhotoFile || isChangingPhoto}
-                                >
-                                  {isChangingPhoto ? (
-                                    <>
-                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                      Mise à jour...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Upload className="mr-2 h-4 w-4" />
-                                      Mettre à jour
-                                    </>
-                                  )}
-                                </Button>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
-                        )}
-                      </div>
+            </Card>
+
+            {/* Photo principale */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Photo du signalement</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {signalement.photoUrl ? (
+                  <div className="relative group">
+                    <div className="w-full border border-border rounded-lg overflow-hidden bg-muted/50">
+                      <img
+                        src={signalement.photoUrl}
+                        alt={signalement.titre}
+                        className="w-full h-auto max-h-[500px] object-contain mx-auto"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.src = "/placeholder.svg"
+                          target.onerror = null
+                        }}
+                      />
                     </div>
-                  ) : (
-                    canEditPhoto && (
-                      <div className="flex justify-center">
+                    {canEditPhoto && (
+                      <Dialog open={showPhotoUpload} onOpenChange={setShowPhotoUpload}>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="mt-3 w-full sm:w-auto"
+                          >
+                            <Camera className="h-4 w-4 mr-2" />
+                            Changer la photo
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Changer la photo du signalement</DialogTitle>
+                            <DialogDescription>
+                              Sélectionnez une nouvelle photo pour ce signalement
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="photo">Nouvelle photo</Label>
+                              <Input
+                                id="photo"
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoChange}
+                                className="cursor-pointer"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                PNG, JPG jusqu'à 10MB
+                              </p>
+                            </div>
+                            {newPhotoPreview && (
+                              <div className="space-y-2">
+                                <Label>Aperçu</Label>
+                                <div className="border rounded-lg overflow-hidden">
+                                  <img
+                                    src={newPhotoPreview}
+                                    alt="Aperçu"
+                                    className="w-full h-64 object-contain"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setShowPhotoUpload(false)
+                                setNewPhotoPreview(null)
+                                setNewPhotoFile(null)
+                              }}
+                            >
+                              Annuler
+                            </Button>
+                            <Button
+                              onClick={handlePhotoUpload}
+                              disabled={!newPhotoFile || isChangingPhoto}
+                            >
+                              {isChangingPhoto ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Mise à jour...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="mr-2 h-4 w-4" />
+                                  Mettre à jour
+                                </>
+                              )}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-border rounded-lg">
+                    {canEditPhoto ? (
+                      <>
+                        <Camera className="h-12 w-12 text-muted-foreground mb-4" />
                         <Dialog open={showPhotoUpload} onOpenChange={setShowPhotoUpload}>
                           <DialogTrigger asChild>
                             <Button variant="outline" className="gap-2">
@@ -822,28 +863,70 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
-                      </div>
-                    )
-                  )}
-                </div>
-                <div>
-                  <h3 className="mb-2 font-semibold">Description</h3>
-                  <p className="text-muted-foreground">{signalement.description}</p>
-                </div>
-                <div>
-                  <h3 className="mb-2 font-semibold">Catégorie</h3>
-                  <Badge variant="outline">{signalement.categorie}</Badge>
-                </div>
-                {signalement.technicien && (
-                  <div>
-                    <h3 className="mb-2 font-semibold">Technicien assigné</h3>
-                    <p className="text-muted-foreground">
-                      {signalement.technicien.prenom} {signalement.technicien.nom}
-                    </p>
+                      </>
+                    ) : (
+                      <p className="text-muted-foreground">Aucune photo disponible</p>
+                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
+
+            {/* Description */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Description</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground whitespace-pre-wrap">{signalement.description}</p>
+              </CardContent>
+            </Card>
+
+            {/* Photos d'intervention */}
+            {photosIntervention.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Camera className="h-5 w-5" />
+                    Photos d'intervention ({photosIntervention.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {photosIntervention.map((photo) => (
+                      <div key={photo.id} className="space-y-2">
+                        <div className="aspect-square rounded-lg overflow-hidden border border-border bg-muted/50">
+                          <img
+                            src={photo.photoUrl}
+                            alt={`Photo d'intervention ${photo.id}`}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.src = "/placeholder.svg"
+                              target.onerror = null
+                            }}
+                          />
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          <p className="font-medium text-foreground">
+                            {photo.technicien.prenom} {photo.technicien.nom}
+                          </p>
+                          <p>
+                            {new Date(photo.dateAjout).toLocaleDateString("fr-FR", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Comments Section */}
             <Card>
@@ -919,12 +1002,37 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Informations */}
             <Card>
               <CardHeader>
-                <CardTitle>Localisation</CardTitle>
+                <CardTitle className="text-lg">Informations</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="h-96 w-full overflow-hidden rounded-lg">
+              <CardContent className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Catégorie</h4>
+                  <Badge variant="outline" className="text-sm">{signalement.categorie}</Badge>
+                </div>
+                {signalement.technicien && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">Technicien assigné</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {signalement.technicien.prenom} {signalement.technicien.nom}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Localisation */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Localisation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="h-64 sm:h-80 w-full overflow-hidden rounded-lg border border-border">
                   {isMapReady && (
                     <MapContainer
                       center={[signalement.latitude, signalement.longitude]}
@@ -933,7 +1041,7 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
                     >
                       <TileLayer
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                       />
                       <Marker 
                         position={[signalement.latitude, signalement.longitude]}
@@ -951,15 +1059,15 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
                     </MapContainer>
                   )}
                 </div>
-                <div className="mt-4 flex items-start gap-2 text-sm text-muted-foreground">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>
-                    {signalement.latitude.toFixed(4)}, {signalement.longitude.toFixed(4)}
-                  </span>
-                </div>
                 {signalement.adresse && (
-                  <div className="mt-2 text-sm text-muted-foreground">{signalement.adresse}</div>
+                  <div className="flex items-start gap-2 text-sm">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="text-muted-foreground break-words">{signalement.adresse}</span>
+                  </div>
                 )}
+                <div className="text-xs text-muted-foreground pt-2 border-t border-border">
+                  <p>Coordonnées: {signalement.latitude.toFixed(6)}, {signalement.longitude.toFixed(6)}</p>
+                </div>
               </CardContent>
             </Card>
 

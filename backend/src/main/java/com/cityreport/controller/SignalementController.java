@@ -8,8 +8,10 @@ import com.cityreport.model.Commentaire;
 import com.cityreport.model.Signalement;
 import com.cityreport.model.User;
 import com.cityreport.model.Notification;
+import com.cityreport.model.PhotoIntervention;
 import com.cityreport.service.CommentaireService;
 import com.cityreport.service.NotificationService;
+import com.cityreport.service.PhotoInterventionService;
 import com.cityreport.service.SignalementService;
 import com.cityreport.service.UserService;
 import jakarta.validation.Valid;
@@ -32,6 +34,7 @@ public class SignalementController {
     private final UserService userService;
     private final CommentaireService commentaireService;
     private final NotificationService notificationService;
+    private final PhotoInterventionService photoInterventionService;
     
     @GetMapping("/public")
     public ResponseEntity<List<Signalement>> getAllSignalementsPublic(
@@ -243,4 +246,66 @@ public class SignalementController {
         Signalement signalement = signalementService.updatePhoto(id, photoUrl, user);
         return ResponseEntity.ok(signalement);
     }
+    
+    @PostMapping("/{id}/accepter")
+    public ResponseEntity<Signalement> accepterAssignation(@PathVariable Long id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        User user = userService.findByEmail(email);
+        
+        // Seuls les techniciens peuvent accepter une assignation
+        if (user.getRole() != User.Role.TECHNICIEN) {
+            throw new ForbiddenException("Seuls les techniciens peuvent accepter une assignation");
+        }
+        
+        Signalement signalement = signalementService.accepterAssignation(id, user);
+        return ResponseEntity.ok(signalement);
+    }
+    
+    @PostMapping("/{id}/refuser")
+    public ResponseEntity<Signalement> refuserAssignation(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        User user = userService.findByEmail(email);
+        
+        // Seuls les techniciens peuvent refuser une assignation
+        if (user.getRole() != User.Role.TECHNICIEN) {
+            throw new ForbiddenException("Seuls les techniciens peuvent refuser une assignation");
+        }
+        
+        String justification = request.get("justification");
+        Signalement signalement = signalementService.refuserAssignation(id, justification, user);
+        return ResponseEntity.ok(signalement);
+    }
+    
+    @PostMapping("/{id}/photos-intervention")
+    public ResponseEntity<PhotoIntervention> ajouterPhotoIntervention(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        User user = userService.findByEmail(email);
+        
+        // Seuls les techniciens peuvent ajouter des photos d'intervention
+        if (user.getRole() != User.Role.TECHNICIEN) {
+            throw new ForbiddenException("Seuls les techniciens peuvent ajouter des photos d'intervention");
+        }
+        
+        String photoUrl = request.get("photoUrl");
+        if (photoUrl == null || photoUrl.trim().isEmpty()) {
+            throw new BadRequestException("L'URL de la photo est requise");
+        }
+        
+        PhotoIntervention photo = photoInterventionService.ajouterPhoto(id, photoUrl, user);
+        return ResponseEntity.ok(photo);
+    }
+    
+    @GetMapping("/{id}/photos-intervention")
+    public ResponseEntity<List<PhotoIntervention>> getPhotosIntervention(@PathVariable Long id) {
+        List<PhotoIntervention> photos = photoInterventionService.getPhotosBySignalement(id);
+        return ResponseEntity.ok(photos);
+    }
 }
+

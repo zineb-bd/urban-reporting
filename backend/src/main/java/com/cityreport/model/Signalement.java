@@ -62,6 +62,12 @@ public class Signalement {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password"})
     private User technicien;
     
+    @Column(nullable = true)
+    private Boolean accepteAssignation; // null = en attente, true = accepté, false = refusé
+    
+    @Column(columnDefinition = "TEXT", nullable = true)
+    private String justificationRefus;
+    
     @OneToMany(mappedBy = "signalement", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "signalement"})
     @OrderBy("dateCreation ASC")

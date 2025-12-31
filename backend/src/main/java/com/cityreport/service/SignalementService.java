@@ -192,6 +192,7 @@ public class SignalementService {
         
         Signalement signalement = findById(signalementId);
         signalement.setTechnicien(technicien);
+        signalement.setAccepteAssignation(null); // En attente de réponse du technicien
         
         // Si le statut est NOUVEAU, le passer automatiquement à EN_ATTENTE
         if (signalement.getStatut() == Signalement.Statut.NOUVEAU) {
@@ -238,6 +239,42 @@ public class SignalementService {
         }
         
         signalement.setPhotoUrl(photoUrl);
+        return signalementRepository.save(signalement);
+    }
+    
+    @Transactional
+    public Signalement accepterAssignation(Long id, User technicien) {
+        Signalement signalement = findById(id);
+        
+        // Vérifier que le technicien est bien assigné à ce signalement
+        if (signalement.getTechnicien() == null || !signalement.getTechnicien().getId().equals(technicien.getId())) {
+            throw new ForbiddenException("Vous n'êtes pas assigné à ce signalement");
+        }
+        
+        signalement.setAccepteAssignation(true);
+        signalement.setJustificationRefus(null);
+        signalement.setStatut(Signalement.Statut.EN_COURS);
+        
+        return signalementRepository.save(signalement);
+    }
+    
+    @Transactional
+    public Signalement refuserAssignation(Long id, String justification, User technicien) {
+        Signalement signalement = findById(id);
+        
+        // Vérifier que le technicien est bien assigné à ce signalement
+        if (signalement.getTechnicien() == null || !signalement.getTechnicien().getId().equals(technicien.getId())) {
+            throw new ForbiddenException("Vous n'êtes pas assigné à ce signalement");
+        }
+        
+        if (justification == null || justification.trim().isEmpty()) {
+            throw new BadRequestException("La justification du refus est obligatoire");
+        }
+        
+        signalement.setAccepteAssignation(false);
+        signalement.setJustificationRefus(justification.trim());
+        // Ne pas changer le statut, l'admin pourra réassigner à un autre technicien
+        
         return signalementRepository.save(signalement);
     }
 }
