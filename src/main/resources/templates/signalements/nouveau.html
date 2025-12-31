@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head}"></head>
+<body>
+    <nav th:replace="~{fragments/header :: navbar}"></nav>
+    
+    <main class="main-content">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="card shadow">
+                        <div class="card-header bg-primary text-white">
+                            <h3 class="mb-0"><i class="bi bi-plus-circle"></i> Nouveau signalement</h3>
+                        </div>
+                        <div class="card-body p-4">
+                            <form th:action="@{/signalements/nouveau}" th:object="${signalement}" method="post" enctype="multipart/form-data">
+                                
+                                <!-- Type de problème -->
+                                <div class="mb-4">
+                                    <label for="typeProbleme" class="form-label fw-bold">Type de problème <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="typeProbleme" th:field="*{typeProbleme}" required>
+                                        <option value="">-- Sélectionnez un type --</option>
+                                        <option value="VOIRIE">Voirie (trous, nids de poule)</option>
+                                        <option value="ECLAIRAGE">Éclairage public</option>
+                                        <option value="DECHETS">Déchets / Propreté</option>
+                                        <option value="SIGNALISATION">Signalisation routière</option>
+                                        <option value="ESPACES_VERTS">Espaces verts</option>
+                                        <option value="AUTRE">Autre</option>
+                                    </select>
+                                    <div class="form-text">Choisissez le type de problème rencontré</div>
+                                    <div th:if="${#fields.hasErrors('typeProbleme')}" class="text-danger mt-1">
+                                        <small th:errors="*{typeProbleme}">Erreur</small>
+                                    </div>
+                                </div>
+
+                                <!-- Description -->
+                                <div class="mb-4">
+                                    <label for="description" class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="description" th:field="*{description}" 
+                                              rows="5" placeholder="Décrivez le problème en détail..." required></textarea>
+                                    <div class="form-text">Minimum 20 caractères</div>
+                                    <div th:if="${#fields.hasErrors('description')}" class="text-danger mt-1">
+                                        <small th:errors="*{description}">Erreur</small>
+                                    </div>
+                                </div>
+
+                                <!-- Adresse -->
+                                <div class="mb-4">
+                                    <label for="adresse" class="form-label fw-bold">Adresse</label>
+                                    <input type="text" class="form-control" id="adresse" th:field="*{adresse}" 
+                                           placeholder="Rue, quartier, ville...">
+                                    <div class="form-text">Adresse approximative du problème</div>
+                                </div>
+
+                                <!-- Localisation -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Localisation <span class="text-danger">*</span></label>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2">
+                                            <label for="latitude" class="form-label">Latitude</label>
+                                            <input type="number" step="0.000001" class="form-control" id="latitude" 
+                                                   th:field="*{latitude}" placeholder="Ex: 33.5731" required>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <label for="longitude" class="form-label">Longitude</label>
+                                            <input type="number" step="0.000001" class="form-control" id="longitude" 
+                                                   th:field="*{longitude}" placeholder="Ex: -7.5898" required>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="getLocation()">
+                                        <i class="bi bi-geo-alt"></i> Utiliser ma position actuelle
+                                    </button>
+                                    <div id="map" class="mt-3"></div>
+                                </div>
+
+                                <!-- Photo -->
+                                <div class="mb-4">
+                                    <label for="photo" class="form-label fw-bold">Photo</label>
+                                    <input type="file" class="form-control" id="photo" name="photo" 
+                                           accept="image/*" onchange="previewImage(event)">
+                                    <div class="form-text">Format accepté : JPG, PNG (max 5MB)</div>
+                                    <div id="imagePreview" class="mt-3"></div>
+                                </div>
+
+                                <!-- Boutons -->
+                                <div class="d-flex justify-content-between">
+                                    <a href="/signalements" th:href="@{/signalements}" class="btn btn-secondary">
+                                        <i class="bi bi-arrow-left"></i> Annuler
+                                    </a>
+                                    <button type="submit" class="btn btn-primary px-4">
+                                        <i class="bi bi-check-circle"></i> Créer le signalement
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/footer :: footer}"></footer>
+    <div th:replace="~{fragments/footer :: scripts}"></div>
+    
+    <script>
+        // Initialize map
+        let map;
+        let marker;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Default to Casablanca, Morocco
+            const defaultLat = 33.5731;
+            const defaultLng = -7.5898;
+            
+            map = L.map('map').setView([defaultLat, defaultLng], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            marker = L.marker([defaultLat, defaultLng], {draggable: true}).addTo(map);
+            
+            marker.on('dragend', function(e) {
+                const position = marker.getLatLng();
+                document.getElementById('latitude').value = position.lat.toFixed(6);
+                document.getElementById('longitude').value = position.lng.toFixed(6);
+            });
+            
+            // Update marker when inputs change
+            document.getElementById('latitude').addEventListener('change', updateMarker);
+            document.getElementById('longitude').addEventListener('change', updateMarker);
+        });
+        
+        function updateMarker() {
+            const lat = parseFloat(document.getElementById('latitude').value);
+            const lng = parseFloat(document.getElementById('longitude').value);
+            if (lat && lng) {
+                marker.setLatLng([lat, lng]);
+                map.setView([lat, lng], 13);
+            }
+        }
+        
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    document.getElementById('latitude').value = lat.toFixed(6);
+                    document.getElementById('longitude').value = lng.toFixed(6);
+                    marker.setLatLng([lat, lng]);
+                    map.setView([lat, lng], 15);
+                }, function() {
+                    alert('Impossible de récupérer votre position');
+                });
+            } else {
+                alert('La géolocalisation n\'est pas supportée par votre navigateur');
+            }
+        }
+        
+        function previewImage(event) {
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+            
+            if (event.target.files && event.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'img-fluid rounded';
+                    img.style.maxHeight = '300px';
+                    preview.appendChild(img);
+                };
+                reader.readAsDataURL(event.target.files[0]);
+            }
+        }
+    </script>
+</body>
+</html>

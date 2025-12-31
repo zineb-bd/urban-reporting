@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<footer th:fragment="footer" class="footer bg-light mt-5 py-4 border-top">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <h5 class="fw-bold"><i class="bi bi-geo-alt-fill text-primary"></i> Signalement Urbain</h5>
+                <p class="text-muted">Plateforme de signalement des problèmes urbains pour améliorer notre ville.</p>
+            </div>
+            <div class="col-md-4">
+                <h6 class="fw-bold">Liens rapides</h6>
+                <ul class="list-unstyled">
+                    <li><a href="/" th:href="@{/}" class="text-decoration-none text-muted">Accueil</a></li>
+                    <li><a href="/signalements" th:href="@{/signalements}" class="text-decoration-none text-muted">Signalements</a></li>
+                    <li><a href="/contact" th:href="@{/contact}" class="text-decoration-none text-muted">Contact</a></li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h6 class="fw-bold">Contact</h6>
+                <p class="text-muted mb-1"><i class="bi bi-envelope"></i> contact@signalement.ma</p>
+                <p class="text-muted"><i class="bi bi-telephone"></i> +212 5XX-XXXXXX</p>
+            </div>
+        </div>
+        <hr>
+        <div class="text-center text-muted">
+            <p class="mb-0">&copy; <span th:text="${#dates.year(#dates.createNow())}">2024</span> Signalement Urbain - Projet Académique JEE</p>
+        </div>
+    </div>
+</footer>
+
+<div th:fragment="scripts">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</div>
+</html>

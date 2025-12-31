@@ -1,0 +1,26 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Pin de localisation avec silhouette de ville -->
+  <path d="M24 4C16.268 4 10 10.268 10 18C10 28 24 42 24 42C24 42 38 28 38 18C38 10.268 31.732 4 24 4Z" fill="#00648E"/>
+  <!-- Silhouette de ville à l'intérieur du pin -->
+  <g opacity="0.95">
+    <!-- Bâtiment 1 (gauche) -->
+    <rect x="14" y="22" width="3.5" height="7" fill="white"/>
+    <!-- Bâtiment 2 (milieu-gauche) -->
+    <rect x="18.5" y="20" width="3" height="9" fill="white"/>
+    <!-- Bâtiment 3 (milieu) - plus haut -->
+    <rect x="22.5" y="17" width="3" height="12" fill="white"/>
+    <!-- Bâtiment 4 (milieu-droite) -->
+    <rect x="26.5" y="21" width="3" height="8" fill="white"/>
+    <!-- Bâtiment 5 (droite) -->
+    <rect x="30.5" y="23" width="3.5" height="6" fill="white"/>
+  </g>
+  <!-- Cercles d'ondes Wi-Fi/signal sortant du pin (haut droit) -->
+  <g opacity="0.7">
+    <!-- Arc externe -->
+    <path d="M30 14C33.3137 14 36 16.6863 36 20" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- Arc moyen -->
+    <path d="M32 12C33.6569 12 35 13.3431 35 15" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- Point central -->
+    <circle cx="35" cy="9" r="2" fill="white"/>
+  </g>
+</svg>

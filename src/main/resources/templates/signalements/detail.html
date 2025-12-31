@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/header :: head}"></head>
+<body>
+    <nav th:replace="~{fragments/header :: navbar}"></nav>
+    
+    <main class="main-content">
+        <div class="container">
+            <a href="/signalements" th:href="@{/signalements}" class="btn btn-outline-secondary mb-4">
+                <i class="bi bi-arrow-left"></i> Retour à la liste
+            </a>
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <!-- Main Info Card -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h3 class="mb-0">
+                                    <span class="badge bg-secondary me-2">#<span th:text="${signalement.id}">1</span></span>
+                                    <span th:text="${signalement.typeProbleme}">Type</span>
+                                </h3>
+                                <span class="badge status-badge" 
+                                      th:classappend="${signalement.statut == 'NOUVEAU'} ? 'bg-info' : 
+                                                     ${signalement.statut == 'EN_COURS'} ? 'bg-warning text-dark' : 'bg-success'"
+                                      th:text="${signalement.statut}">NOUVEAU</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Photo -->
+                            <div th:if="${signalement.photoUrl}" class="mb-4">
+                                <img th:src="${signalement.photoUrl}" alt="Photo du signalement" 
+                                     class="img-fluid rounded" style="max-height: 500px; width: 100%; object-fit: cover;">
+                            </div>
+
+                            <!-- Description -->
+                            <div class="mb-4">
+                                <h5><i class="bi bi-file-text"></i> Description</h5>
+                                <p class="text-muted" th:text="${signalement.description}">Description du signalement</p>
+                            </div>
+
+                            <!-- Location Info -->
+                            <div class="mb-4">
+                                <h5><i class="bi bi-geo-alt"></i> Localisation</h5>
+                                <p class="text-muted mb-2" th:if="${signalement.adresse}">
+                                    <strong>Adresse :</strong> <span th:text="${signalement.adresse}">Adresse</span>
+                                </p>
+                                <p class="text-muted mb-3">
+                                    <strong>Coordonnées :</strong> 
+                                    <span th:text="${signalement.latitude}">0</span>, 
+                                    <span th:text="${signalement.longitude}">0</span>
+                                </p>
+                                <div id="map"></div>
+                            </div>
+
+                            <!-- Change Status (Technicien only) -->
+                            <div sec:authorize="hasRole('TECHNICIEN')" class="border-top pt-4">
+                                <h5><i class="bi bi-gear"></i> Changer le statut</h5>
+                                <form th:action="@{/signalements/{id}/statut(id=${signalement.id})}" method="post" class="row g-3">
+                                    <div class="col-md-8">
+                                        <select class="form-select" name="statut" required>
+                                            <option value="NOUVEAU" th:selected="${signalement.statut == 'NOUVEAU'}">Nouveau</option>
+                                            <option value="EN_COURS" th:selected="${signalement.statut == 'EN_COURS'}">En cours</option>
+                                            <option value="RESOLU" th:selected="${signalement.statut == 'RESOLU'}">Résolu</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="bi bi-check-circle"></i> Mettre à jour
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comments Section -->
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-chat-dots"></i> Commentaires</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Add Comment -->
+                            <form th:action="@{/signalements/{id}/commentaire(id=${signalement.id})}" method="post" class="mb-4">
+                                <div class="mb-3">
+                                    <textarea class="form-control" name="contenu" rows="3" 
+                                              placeholder="Ajouter un commentaire..." required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-send"></i> Envoyer
+                                </button>
+                            </form>
+
+                            <!-- Comments List -->
+                            <div th:if="${!#lists.isEmpty(signalement.commentaires)}">
+                                <div th:each="commentaire : ${signalement.commentaires}" class="border-bottom pb-3 mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <strong th:text="${commentaire.auteur.nom}">Auteur</strong>
+                                        <small class="text-muted" th:text="${#temporals.format(commentaire.dateCreation, 'dd/MM/yyyy HH:mm')}">Date</small>
+                                    </div>
+                                    <p class="mb-0 text-muted" th:text="${commentaire.contenu}">Commentaire</p>
+                                </div>
+                            </div>
+                            <div th:if="${#lists.isEmpty(signalement.commentaires)}" class="text-center text-muted py-4">
+                                <i class="bi bi-chat display-4"></i>
+                                <p class="mt-2">Aucun commentaire pour le moment</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="col-lg-4">
+                    <!-- Info Card -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informations</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <small class="text-muted">Créé par</small>
+                                <p class="mb-0 fw-bold" th:text="${signalement.citoyen.nom}">Nom du citoyen</p>
+                            </div>
+                            <div class="mb-3">
+                                <small class="text-muted">Date de création</small>
+                                <p class="mb-0" th:text="${#temporals.format(signalement.dateCreation, 'dd/MM/yyyy à HH:mm')}">01/01/2024</p>
+                            </div>
+                            <div class="mb-3" th:if="${signalement.dateModification}">
+                                <small class="text-muted">Dernière modification</small>
+                                <p class="mb-0" th:text="${#temporals.format(signalement.dateModification, 'dd/MM/yyyy à HH:mm')}">01/01/2024</p>
+                            </div>
+                            <div th:if="${signalement.technicien}">
+                                <small class="text-muted">Assigné à</small>
+                                <p class="mb-0 fw-bold" th:text="${signalement.technicien.nom}">Nom du technicien</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions Card -->
+                    <div class="card" sec:authorize="hasRole('ADMIN')">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-tools"></i> Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            <form th:action="@{/signalements/{id}/assigner(id=${signalement.id})}" method="post" class="mb-3">
+                                <label class="form-label">Assigner à un technicien</label>
+                                <select class="form-select mb-2" name="technicienId" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option th:each="tech : ${techniciens}" 
+                                            th:value="${tech.id}" 
+                                            th:text="${tech.nom}"
+                                            th:selected="${signalement.technicien?.id == tech.id}">Technicien</option>
+                                </select>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-person-check"></i> Assigner
+                                </button>
+                            </form>
+                            
+                            <hr>
+                            
+                            <form th:action="@{/signalements/{id}/supprimer(id=${signalement.id})}" method="post" 
+                                  onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce signalement ?');">
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="bi bi-trash"></i> Supprimer
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/footer :: footer}"></footer>
+    <div th:replace="~{fragments/footer :: scripts}"></div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const lat = parseFloat('[[${signalement.latitude}]]');
+            const lng = parseFloat('[[${signalement.longitude}]]');
+            
+            const map = L.map('map').setView([lat, lng], 15);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            L.marker([lat, lng]).addTo(map)
+                .bindPopup('Lieu du signalement')
+                .openPopup();
+        });
+    </script>
+</body>
+</html>

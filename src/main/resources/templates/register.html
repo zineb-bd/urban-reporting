@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head}"></head>
+<body class="bg-light">
+    <nav th:replace="~{fragments/header :: navbar}"></nav>
+    
+    <main class="main-content">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="card shadow">
+                        <div class="card-body p-5">
+                            <div class="text-center mb-4">
+                                <i class="bi bi-person-plus-fill display-1 text-primary"></i>
+                                <h2 class="mt-3">Inscription</h2>
+                                <p class="text-muted">Créez votre compte gratuitement</p>
+                            </div>
+
+                            <form th:action="@{/register}" th:object="${user}" method="post">
+                                <div class="mb-3">
+                                    <label for="nom" class="form-label">Nom complet <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="nom" th:field="*{nom}" required>
+                                    <div th:if="${#fields.hasErrors('nom')}" class="text-danger mt-1">
+                                        <small th:errors="*{nom}">Erreur</small>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                                    <input type="email" class="form-control" id="email" th:field="*{email}" required>
+                                    <div th:if="${#fields.hasErrors('email')}" class="text-danger mt-1">
+                                        <small th:errors="*{email}">Erreur</small>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">Nom d'utilisateur <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="username" th:field="*{username}" required>
+                                    <div th:if="${#fields.hasErrors('username')}" class="text-danger mt-1">
+                                        <small th:errors="*{username}">Erreur</small>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Mot de passe <span class="text-danger">*</span></label>
+                                    <input type="password" class="form-control" id="password" th:field="*{password}" required>
+                                    <div class="form-text">Minimum 6 caractères</div>
+                                    <div th:if="${#fields.hasErrors('password')}" class="text-danger mt-1">
+                                        <small th:errors="*{password}">Erreur</small>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="telephone" class="form-label">Téléphone</label>
+                                    <input type="tel" class="form-control" id="telephone" th:field="*{telephone}">
+                                </div>
+
+                                <div class="mb-4">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="acceptTerms" required>
+                                        <label class="form-check-label" for="acceptTerms">
+                                            J'accepte les <a href="/terms" th:href="@{/terms}">conditions d'utilisation</a>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100 py-2">
+                                    <i class="bi bi-person-plus"></i> S'inscrire
+                                </button>
+                            </form>
+
+                            <hr class="my-4">
+
+                            <div class="text-center">
+                                <p class="text-muted mb-0">Vous avez déjà un compte ? 
+                                    <a href="/login" th:href="@{/login}" class="text-decoration-none">Connectez-vous</a>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/footer :: footer}"></footer>
+    <div th:replace="~{fragments/footer :: scripts}"></div>
+</body>
+</html>

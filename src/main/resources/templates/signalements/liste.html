@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/header :: head}"></head>
+<body>
+    <nav th:replace="~{fragments/header :: navbar}"></nav>
+    
+    <main class="main-content">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-list"></i> Liste des signalements</h2>
+                <a href="/signalements/nouveau" th:href="@{/signalements/nouveau}" 
+                   class="btn btn-primary" sec:authorize="hasRole('CITOYEN')">
+                    <i class="bi bi-plus-circle"></i> Nouveau signalement
+                </a>
+            </div>
+
+            <!-- Filters -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form th:action="@{/signalements}" method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="statut" class="form-label">Statut</label>
+                            <select class="form-select" id="statut" name="statut">
+                                <option value="">Tous</option>
+                                <option value="NOUVEAU" th:selected="${param.statut == 'NOUVEAU'}">Nouveau</option>
+                                <option value="EN_COURS" th:selected="${param.statut == 'EN_COURS'}">En cours</option>
+                                <option value="RESOLU" th:selected="${param.statut == 'RESOLU'}">Résolu</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="type" class="form-label">Type</label>
+                            <select class="form-select" id="type" name="type">
+                                <option value="">Tous</option>
+                                <option value="VOIRIE" th:selected="${param.type == 'VOIRIE'}">Voirie</option>
+                                <option value="ECLAIRAGE" th:selected="${param.type == 'ECLAIRAGE'}">Éclairage</option>
+                                <option value="DECHETS" th:selected="${param.type == 'DECHETS'}">Déchets</option>
+                                <option value="SIGNALISATION" th:selected="${param.type == 'SIGNALISATION'}">Signalisation</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="recherche" class="form-label">Recherche</label>
+                            <input type="text" class="form-control" id="recherche" name="recherche" 
+                                   th:value="${param.recherche}" placeholder="Mot-clé...">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search"></i> Filtrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                    <th>Adresse</th>
+                                    <th>Statut</th>
+                                    <th>Date</th>
+                                    <th sec:authorize="hasRole('CITOYEN')">Citoyen</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="signalement : ${signalements}">
+                                    <td><span class="badge bg-secondary">#<span th:text="${signalement.id}">1</span></span></td>
+                                    <td>
+                                        <i th:if="${signalement.typeProbleme == 'VOIRIE'}" class="bi bi-cone-striped text-warning"></i>
+                                        <i th:if="${signalement.typeProbleme == 'ECLAIRAGE'}" class="bi bi-lightbulb text-primary"></i>
+                                        <i th:if="${signalement.typeProbleme == 'DECHETS'}" class="bi bi-trash text-success"></i>
+                                        <i th:if="${signalement.typeProbleme == 'SIGNALISATION'}" class="bi bi-sign-stop text-danger"></i>
+                                        <span th:text="${signalement.typeProbleme}">VOIRIE</span>
+                                    </td>
+                                    <td>
+                                        <span th:text="${#strings.abbreviate(signalement.description, 50)}">Description...</span>
+                                    </td>
+                                    <td th:text="${signalement.adresse ?: 'N/A'}">Adresse</td>
+                                    <td>
+                                        <span class="badge" 
+                                              th:classappend="${signalement.statut == 'NOUVEAU'} ? 'bg-info' : 
+                                                             ${signalement.statut == 'EN_COURS'} ? 'bg-warning' : 'bg-success'"
+                                              th:text="${signalement.statut}">NOUVEAU</span>
+                                    </td>
+                                    <td th:text="${#temporals.format(signalement.dateCreation, 'dd/MM/yyyy')}">01/01/2024</td>
+                                    <td sec:authorize="hasRole('CITOYEN')" th:text="${signalement.citoyen.nom}">Nom</td>
+                                    <td>
+                                        <a th:href="@{/signalements/{id}(id=${signalement.id})}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i> Voir
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(signalements)}">
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox display-4"></i>
+                                        <p class="mt-2">Aucun signalement trouvé</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav th:if="${totalPages > 1}">
+                        <ul class="pagination justify-content-center mb-0">
+                            <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                                <a class="page-link" th:href="@{/signalements(page=${currentPage - 1}, statut=${param.statut}, type=${param.type})}">
+                                    Précédent
+                                </a>
+                            </li>
+                            <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
+                                th:classappend="${i == currentPage} ? 'active'">
+                                <a class="page-link" th:href="@{/signalements(page=${i}, statut=${param.statut}, type=${param.type})}" 
+                                   th:text="${i + 1}">1</a>
+                            </li>
+                            <li class="page-item" th:classappend="${currentPage == totalPages - 1} ? 'disabled'">
+                                <a class="page-link" th:href="@{/signalements(page=${currentPage + 1}, statut=${param.statut}, type=${param.type})}">
+                                    Suivant
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/footer :: footer}"></footer>
+    <div th:replace="~{fragments/footer :: scripts}"></div>
+</body>
+</html>

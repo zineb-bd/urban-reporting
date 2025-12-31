@@ -1,0 +1,43 @@
+"use client"
+
+import { Button } from "@/components/ui/button"
+import { ArrowRight, Sparkles } from "lucide-react"
+
+export function CTA() {
+  return (
+    <section className="py-12 md:py-16 px-4 relative overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-bl from-orange-600/30 via-transparent to-transparent rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-blue-600/30 via-transparent to-transparent rounded-full blur-3xl" />
+      </div>
+
+      <div className="container mx-auto max-w-2xl text-center space-y-6 relative z-10">
+        <div className="space-y-4">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/30">
+            <Sparkles className="w-4 h-4 text-orange-500" />
+            <span className="text-sm text-orange-400">Prêt à commencer?</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-bold text-foreground text-balance">Rejoignez le mouvement urbain</h2>
+          <p className="text-lg text-foreground/70">
+            Contribuez à une ville plus agréable. Des milliers de citoyens engagés font déjà la différence.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Button className="bg-orange-600 hover:bg-orange-700 text-white h-12 px-8 text-base flex items-center justify-center gap-2 group rounded-lg">
+            Commencer gratuitement
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </Button>
+          <Button
+            variant="outline"
+            className="border-orange-500/30 text-foreground hover:bg-orange-500/10 h-12 px-8 text-base rounded-lg bg-transparent"
+          >
+            En savoir plus
+          </Button>
+        </div>
+
+        <p className="text-sm text-foreground/60">Aucune carte de crédit requise. Accès gratuit pendant 14 jours.</p>
+      </div>
+    </section>
+  )
+}
