@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/lib/auth-context"
-import { User, LogOut, LayoutDashboard, FileText, Settings, Star, Users, BarChart3 } from "lucide-react"
+import { User, LogOut, LayoutDashboard, FileText, Settings, Star, Users, BarChart3, FileCheck } from "lucide-react"
 import Link from "next/link"
 import { NotificationBell } from "@/components/notification-bell"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -77,6 +77,9 @@ export function Header() {
               <Link href="/admin/rapports" className="text-sm font-medium text-muted-foreground hover:text-foreground">
                 Générer un rapport
               </Link>
+              <Link href="/admin/contact-messages" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                Messages de contact
+              </Link>
             </>
           )}
 
@@ -140,6 +143,13 @@ export function Header() {
                     <Link href="/faq" className="cursor-pointer">
                       <FileText className="mr-2 h-4 w-4" />
                       FAQ
+                    </Link>
+                  </DropdownMenuItem>
+                ) : user?.role === "TECHNICIEN" ? (
+                  <DropdownMenuItem asChild>
+                    <Link href="/reglement" className="cursor-pointer">
+                      <FileCheck className="mr-2 h-4 w-4" />
+                      Règlement
                     </Link>
                   </DropdownMenuItem>
                 ) : (

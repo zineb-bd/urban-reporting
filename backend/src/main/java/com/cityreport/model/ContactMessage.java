@@ -1,17 +1,18 @@
 package com.cityreport.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
-@Table(name = "users")
+@Table(name = "contact_messages")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class ContactMessage {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,28 +24,21 @@ public class User {
     @Column(nullable = false)
     private String prenom;
     
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String email;
     
-    @JsonIgnore
     @Column(nullable = false)
-    private String password;
-    
     private String telephone;
     
-    private String adresse;
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String message;
     
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role;
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime dateCreation;
     
-    @Column(nullable = false)
-    private Boolean enabled = true;
-    
-    @Column(nullable = true)
-    private String technicienId;
-    
-    public enum Role {
-        CITOYEN, TECHNICIEN, ADMIN
+    @PrePersist
+    protected void onCreate() {
+        dateCreation = LocalDateTime.now();
     }
 }
+

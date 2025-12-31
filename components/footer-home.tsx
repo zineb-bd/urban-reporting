@@ -1,11 +1,12 @@
 "use client"
 
 import { Mail, MapPin, Phone } from "lucide-react"
+import Link from "next/link"
 
 export function FooterHome() {
   return (
-    <footer id="contact" className="bg-card/50 border-t border-border py-16 px-4">
-      <div className="container mx-auto space-y-12">
+    <footer id="contact" className="bg-card/50 border-t border-border py-4 px-4">
+      <div className="container mx-auto space-y-4">
         <div className="grid md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
@@ -46,9 +47,9 @@ export function FooterHome() {
                 </a>
               </li>
               <li>
-                <a href="#contact" className="text-foreground/70 hover:text-[#00648E] transition-colors">
-                  Contact
-                </a>
+                <Link href="/contact" className="text-foreground/70 hover:text-[#00648E] transition-colors">
+                  Contactez-nous
+                </Link>
               </li>
               <li>
                 <a href="/login" className="text-foreground/70 hover:text-[#00648E] transition-colors">
@@ -78,7 +79,7 @@ export function FooterHome() {
           </div>
         </div>
 
-        <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-foreground/60">
+        <div className="border-t border-border pt-4 flex flex-col md:flex-row justify-between items-center gap-2 text-sm text-foreground/60">
           <p>&copy; 2025 CitéConnect. Tous droits réservés.</p>
           <div className="flex gap-6">
           </div>

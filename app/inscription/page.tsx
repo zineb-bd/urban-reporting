@@ -19,8 +19,8 @@ export default function RegisterPage() {
     prenom: "",
     email: "",
     telephone: "",
-    adresse: "",
     role: "CITOYEN",
+    technicienId: "",
     password: "",
     confirmPassword: "",
   })
@@ -148,7 +148,10 @@ export default function RegisterPage() {
                 <div className="space-y-2">
                   <Label htmlFor="role">Type de compte</Label>
                   {isMounted ? (
-                    <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                    <Select 
+                      value={formData.role} 
+                      onValueChange={(value) => setFormData({ ...formData, role: value, technicienId: value === "TECHNICIEN" ? formData.technicienId : "" })}
+                    >
                       <SelectTrigger id="role">
                         <SelectValue />
                       </SelectTrigger>
@@ -165,15 +168,21 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="adresse">Adresse</Label>
-                <Input
-                  id="adresse"
-                  placeholder="123 rue de la République, Paris"
-                  value={formData.adresse}
-                  onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
-                />
-              </div>
+              {formData.role === "TECHNICIEN" && (
+                <div className="space-y-2">
+                  <Label htmlFor="technicienId">ID Technicien *</Label>
+                  <Input
+                    id="technicienId"
+                    placeholder="Ex: TECH-001, MAT-123, etc."
+                    value={formData.technicienId}
+                    onChange={(e) => setFormData({ ...formData, technicienId: e.target.value })}
+                    required={formData.role === "TECHNICIEN"}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Identifiant unique du technicien (obligatoire pour les techniciens)
+                  </p>
+                </div>
+              )}
 
               <div className="grid gap-4 md:grid-cols-2">
                 {/* Mot de passe */}
