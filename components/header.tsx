@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/lib/auth-context"
-import { User, LogOut, LayoutDashboard, FileText, Settings, Star } from "lucide-react"
+import { User, LogOut, LayoutDashboard, FileText, Settings, Star, Users, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { NotificationBell } from "@/components/notification-bell"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -65,11 +65,19 @@ export function Header() {
             </Link>
           )}
 
-          {/* Admin: Dashboard avec statistiques */}
+          {/* Admin: Dashboard, Assigner signalement, Générer rapport */}
           {user?.role === "ADMIN" && (
-            <Link href="/admin/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-              Dashboard
-            </Link>
+            <>
+              <Link href="/admin/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                Dashboard
+              </Link>
+              <Link href="/signalements" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                Assigner un signalement
+              </Link>
+              <Link href="/admin/rapports" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                Générer un rapport
+              </Link>
+            </>
           )}
 
           {isAuthenticated && <NotificationBell />}

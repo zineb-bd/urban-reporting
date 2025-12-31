@@ -373,41 +373,6 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Quick Actions */}
-        <Card className="mt-8 border-2 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
-          <CardHeader className="border-b">
-            <CardTitle className="text-xl font-bold">Actions rapides</CardTitle>
-            <CardDescription>Accès rapide aux fonctionnalités principales</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Button 
-                variant="outline" 
-                className="h-auto p-6 border-2 hover:border-purple-300 dark:hover:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/30 hover:shadow-lg transition-all duration-300 group" 
-                asChild
-              >
-                <Link href="/signalements" className="flex flex-col items-center gap-3">
-                  <div className="p-3 rounded-lg bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
-                    <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <span className="font-semibold">Assigner un technicien</span>
-                </Link>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-auto p-6 border-2 hover:border-green-300 dark:hover:border-green-700 hover:bg-green-50 dark:hover:bg-green-950/30 hover:shadow-lg transition-all duration-300 group" 
-                asChild
-              >
-                <Link href="/admin/rapports" className="flex flex-col items-center gap-3">
-                  <div className="p-3 rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
-                    <BarChart3 className="h-6 w-6 text-green-600 dark:text-green-400" />
-                  </div>
-                  <span className="font-semibold">Générer un rapport</span>
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </main>
     </div>
   )
