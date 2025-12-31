@@ -20,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/signalements")
@@ -172,8 +173,10 @@ public class SignalementController {
         String email = auth.getName();
         User user = userService.findByEmail(email);
         
-        // Vérifier les permissions
-        signalementService.verifyOwnership(id, user);
+        // Seuls les admins peuvent supprimer un signalement
+        if (user.getRole() != User.Role.ADMIN) {
+            throw new ForbiddenException("Seuls les administrateurs peuvent supprimer un signalement");
+        }
         
         signalementService.delete(id);
         return ResponseEntity.noContent().build();
@@ -227,7 +230,7 @@ public class SignalementController {
     @PatchMapping("/{id}/photo")
     public ResponseEntity<Signalement> updatePhoto(
             @PathVariable Long id,
-            @RequestBody java.util.Map<String, String> request) {
+            @RequestBody Map<String, String> request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
         User user = userService.findByEmail(email);

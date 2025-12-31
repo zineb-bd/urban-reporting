@@ -19,7 +19,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { MapPin, Calendar, User, AlertCircle, Clock, CheckCircle2, MessageSquare, Loader2, Camera, Upload, X } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { MapPin, Calendar, User, AlertCircle, Clock, CheckCircle2, MessageSquare, Loader2, Camera, Upload, X, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect, use, useMemo } from "react"
 import dynamic from "next/dynamic"
@@ -102,6 +113,7 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
   const [showPhotoUpload, setShowPhotoUpload] = useState(false)
   const [newPhotoPreview, setNewPhotoPreview] = useState<string | null>(null)
   const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Icône personnalisée de pin rouge pour le marqueur
   const customIcon = useMemo(() => {
@@ -399,16 +411,26 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
       // Pour l'instant, on utilise la preview en base64
       // Dans un vrai projet, vous devriez uploader l'image vers un service de stockage
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
-      const response = await fetch(`${apiUrl}/api/signalements/${id}/photo`, {
-        method: "PATCH",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          photoUrl: newPhotoPreview,
-        }),
-      })
+      
+      let response
+      try {
+        response = await fetch(`${apiUrl}/api/signalements/${id}/photo`, {
+          method: "PATCH",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            photoUrl: newPhotoPreview,
+          }),
+        })
+      } catch (fetchError: any) {
+        console.error("Erreur de connexion au backend:", fetchError)
+        throw new Error(
+          `Impossible de se connecter au serveur. Veuillez vérifier que le backend est démarré sur ${apiUrl}. ` +
+          `Si vous venez d'ajouter cet endpoint, veuillez redémarrer le backend.`
+        )
+      }
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
@@ -418,13 +440,24 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
           return
         }
 
+        if (response.status === 404) {
+          throw new Error(
+            "L'endpoint de mise à jour de photo n'est pas disponible. " +
+            "Veuillez redémarrer le backend pour activer cette fonctionnalité."
+          )
+        }
+
         const errorText = await response.text()
         let errorMessage = `Erreur ${response.status}: ${response.statusText}`
         try {
-          const errorData = JSON.parse(errorText)
-          errorMessage = errorData.message || errorData.error || errorMessage
+          if (errorText && errorText.trim().length > 0) {
+            const errorData = JSON.parse(errorText)
+            errorMessage = errorData.message || errorData.error || errorMessage
+          }
         } catch {
-          errorMessage = errorText || errorMessage
+          if (errorText && errorText.trim().length > 0) {
+            errorMessage = errorText
+          }
         }
         throw new Error(errorMessage)
       }
@@ -449,6 +482,58 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
     signalement.user.id === currentUser.id || 
     currentUser.role === "ADMIN"
   )
+
+  const handleDelete = async () => {
+    if (!signalement) return
+
+    try {
+      setIsDeleting(true)
+      const token = localStorage.getItem("token")
+      if (!token) {
+        throw new Error("Token d'authentification manquant")
+      }
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+      const response = await fetch(`${apiUrl}/api/signalements/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem("token")
+          localStorage.removeItem("user")
+          router.push("/login")
+          return
+        }
+        
+        const errorText = await response.text()
+        let errorMessage = `Erreur ${response.status}: ${response.statusText}`
+        try {
+          if (errorText && errorText.trim().length > 0) {
+            const errorData = JSON.parse(errorText)
+            errorMessage = errorData.message || errorData.error || errorMessage
+          }
+        } catch {
+          if (errorText && errorText.trim().length > 0) {
+            errorMessage = errorText
+          }
+        }
+        throw new Error(errorMessage)
+      }
+
+      toast.success("Signalement supprimé avec succès")
+      router.push("/signalements")
+    } catch (err: any) {
+      console.error("Erreur lors de la suppression du signalement:", err)
+      toast.error(err.message || "Une erreur est survenue lors de la suppression")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   if (!isAuthenticated) {
     return null
@@ -492,10 +577,46 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
     <div className="min-h-screen bg-background">
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <Link href="/signalements" className="text-sm text-muted-foreground hover:text-foreground">
             ← Retour aux signalements
           </Link>
+          {currentUser?.role === "ADMIN" && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Supprimer
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Supprimer le signalement</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Êtes-vous sûr de vouloir supprimer le signalement "{signalement.titre}" ? 
+                    Cette action est irréversible et supprimera définitivement le signalement et tous ses commentaires.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Suppression...
+                      </>
+                    ) : (
+                      "Supprimer"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
 
         {error && (

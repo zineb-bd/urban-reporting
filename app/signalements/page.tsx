@@ -4,11 +4,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Search, Filter, Clock, CheckCircle2, AlertCircle, Loader2, FileText } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Search, Filter, Clock, CheckCircle2, AlertCircle, Loader2, FileText, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 interface Signalement {
   id: number
@@ -48,6 +60,7 @@ export default function SignalementsPage() {
   const [categoryFilter, setCategoryFilter] = useState("TOUS")
   const [searchQuery, setSearchQuery] = useState("") // Pour le debounce
   const [isMounted, setIsMounted] = useState(false)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
   // S'assurer que le composant est monté côté client pour éviter les erreurs d'hydratation
   useEffect(() => {
@@ -149,6 +162,57 @@ export default function SignalementsPage() {
 
   // Utiliser directement les signalements du backend (déjà filtrés)
   const filteredSignalements = signalements
+
+  const handleDelete = async (signalementId: number) => {
+    try {
+      setDeletingId(signalementId)
+      const token = localStorage.getItem("token")
+      if (!token) {
+        throw new Error("Token d'authentification manquant")
+      }
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+      const response = await fetch(`${apiUrl}/api/signalements/${signalementId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem("token")
+          localStorage.removeItem("user")
+          router.push("/login")
+          return
+        }
+        
+        const errorText = await response.text()
+        let errorMessage = `Erreur ${response.status}: ${response.statusText}`
+        try {
+          if (errorText && errorText.trim().length > 0) {
+            const errorData = JSON.parse(errorText)
+            errorMessage = errorData.message || errorData.error || errorMessage
+          }
+        } catch {
+          if (errorText && errorText.trim().length > 0) {
+            errorMessage = errorText
+          }
+        }
+        throw new Error(errorMessage)
+      }
+
+      // Retirer le signalement de la liste
+      setSignalements((prev) => prev.filter((s) => s.id !== signalementId))
+      toast.success("Signalement supprimé avec succès")
+    } catch (err: any) {
+      console.error("Erreur lors de la suppression du signalement:", err)
+      toast.error(err.message || "Une erreur est survenue lors de la suppression")
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -262,49 +326,100 @@ export default function SignalementsPage() {
             const statusInfo = statusConfig[signalement.statut as keyof typeof statusConfig]
             const priorityInfo = priorityConfig[signalement.priorite as keyof typeof priorityConfig]
             const StatusIcon = statusInfo.icon
+            const isAdmin = user?.role === "ADMIN"
 
             return (
-              <Link key={signalement.id} href={`/signalements/${signalement.id}`}>
-                <Card className="h-full transition-all hover:shadow-lg">
-                  <div className="relative h-48 w-full overflow-hidden rounded-t-lg bg-muted">
-                    {signalement.photoUrl ? (
-                      <img
-                        src={signalement.photoUrl}
-                        alt={signalement.titre}
-                        className="h-full w-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.src = "/placeholder.svg"
-                          target.onerror = null
-                        }}
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-muted">
-                        <FileText className="h-12 w-12 text-muted-foreground" />
+              <div key={signalement.id} className="relative">
+                <Link href={`/signalements/${signalement.id}`}>
+                  <Card className="h-full transition-all hover:shadow-lg">
+                    <div className="relative h-48 w-full overflow-hidden rounded-t-lg bg-muted">
+                      {signalement.photoUrl ? (
+                        <img
+                          src={signalement.photoUrl}
+                          alt={signalement.titre}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.src = "/placeholder.svg"
+                            target.onerror = null
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-muted">
+                          <FileText className="h-12 w-12 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <CardHeader className="pb-3">
+                      <div className="mb-2 flex items-start justify-between gap-2">
+                        <Badge variant={priorityInfo.variant}>{priorityInfo.label}</Badge>
+                        <div
+                          className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs text-white ${statusInfo.color}`}
+                        >
+                          <StatusIcon className="h-3 w-3" />
+                          {statusInfo.label}
+                        </div>
                       </div>
-                    )}
+                      <CardTitle className="line-clamp-2">{signalement.titre}</CardTitle>
+                      <CardDescription className="line-clamp-2">{signalement.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <span>{signalement.categorie}</span>
+                        <span>{new Date(signalement.dateCreation).toLocaleDateString("fr-FR")}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+                {isAdmin && (
+                  <div className="absolute top-2 right-2 z-10">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="h-8 w-8 shadow-lg"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Supprimer le signalement</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Êtes-vous sûr de vouloir supprimer le signalement "{signalement.titre}" ? 
+                            Cette action est irréversible et supprimera définitivement le signalement et tous ses commentaires.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={(e) => {
+                              e.preventDefault()
+                              handleDelete(signalement.id)
+                            }}
+                            disabled={deletingId === signalement.id}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {deletingId === signalement.id ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Suppression...
+                              </>
+                            ) : (
+                              "Supprimer"
+                            )}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
-                  <CardHeader className="pb-3">
-                    <div className="mb-2 flex items-start justify-between gap-2">
-                      <Badge variant={priorityInfo.variant}>{priorityInfo.label}</Badge>
-                      <div
-                        className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs text-white ${statusInfo.color}`}
-                      >
-                        <StatusIcon className="h-3 w-3" />
-                        {statusInfo.label}
-                      </div>
-                    </div>
-                    <CardTitle className="line-clamp-2">{signalement.titre}</CardTitle>
-                    <CardDescription className="line-clamp-2">{signalement.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>{signalement.categorie}</span>
-                      <span>{new Date(signalement.dateCreation).toLocaleDateString("fr-FR")}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                )}
+              </div>
             )
           })}
           </div>
