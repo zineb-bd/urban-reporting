@@ -16,3 +16,4 @@ CREATE DATABASE cityreport;
 \echo 'Vous pouvez maintenant demarrer le backend Spring Boot avec PostgreSQL'
 
 
+

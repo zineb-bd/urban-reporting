@@ -312,3 +312,4 @@ graph TB
 - **Mot de passe**: Encodage via Spring Security BCrypt
 
 
+

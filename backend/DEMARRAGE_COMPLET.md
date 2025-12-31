@@ -111,3 +111,4 @@ netstat -ano | findstr :5432
 - `CONFIGURATION_POSTGRESQL.md` - Options de configuration avancées
 
 
+
