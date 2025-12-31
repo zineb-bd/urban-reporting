@@ -41,6 +41,8 @@ interface Signalement {
   adresse?: string | null
   accepteAssignation?: boolean | null
   justificationRefus?: string | null
+  commentairesTechniques?: string | null
+  tempsPasseMinutes?: number | null
 }
 
 export default function TechnicienDashboard() {
@@ -58,6 +60,9 @@ export default function TechnicienDashboard() {
   const [interventionPhotos, setInterventionPhotos] = useState<File[]>([])
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false)
+  const [commentairesTechniques, setCommentairesTechniques] = useState("")
+  const [tempsPasseHours, setTempsPasseHours] = useState("")
+  const [tempsPasseMinutes, setTempsPasseMinutes] = useState("")
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -118,6 +123,9 @@ export default function TechnicienDashboard() {
       setSelectedStatusChange({ id, newStatus })
       setInterventionPhotos([])
       setPhotoPreviews([])
+      setCommentairesTechniques("")
+      setTempsPasseHours("")
+      setTempsPasseMinutes("")
       setStatusChangeDialogOpen(true)
     } else {
       // Pour les autres statuts, changer directement sans dialog
@@ -212,14 +220,42 @@ export default function TechnicienDashboard() {
       }
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+
+      // Validation des champs obligatoires
+      if (!commentairesTechniques.trim()) {
+        toast.error("Veuillez remplir les commentaires techniques")
+        setIsUploadingPhotos(false)
+        return
+      }
+
+      if (!tempsPasseHours.trim() && !tempsPasseMinutes.trim()) {
+        toast.error("Veuillez indiquer le temps passé pour résoudre le problème")
+        setIsUploadingPhotos(false)
+        return
+      }
+
+      // Calculer le temps total en minutes
+      const hours = parseInt(tempsPasseHours) || 0
+      const minutes = parseInt(tempsPasseMinutes) || 0
+      const totalMinutes = hours * 60 + minutes
+
+      if (totalMinutes <= 0) {
+        toast.error("Le temps passé doit être supérieur à 0")
+        setIsUploadingPhotos(false)
+        return
+      }
       
-      // 1. Mettre à jour le statut
+      // 1. Mettre à jour le statut avec les commentaires techniques et le temps passé
       const statusResponse = await fetch(`${apiUrl}/api/signalements/${selectedStatusChange.id}/statut?statut=${selectedStatusChange.newStatus}`, {
         method: "PATCH",
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          commentairesTechniques: commentairesTechniques.trim(),
+          tempsPasseMinutes: totalMinutes,
+        }),
       })
 
       if (!statusResponse.ok) {
@@ -302,6 +338,9 @@ export default function TechnicienDashboard() {
       setSelectedStatusChange(null)
       setInterventionPhotos([])
       setPhotoPreviews([])
+      setCommentairesTechniques("")
+      setTempsPasseHours("")
+      setTempsPasseMinutes("")
       
       toast.success(`Statut mis à jour avec succès${interventionPhotos.length > 0 ? ` et ${interventionPhotos.length} photo(s) ajoutée(s)` : ""}`)
     } catch (err: any) {
@@ -772,9 +811,63 @@ export default function TechnicienDashboard() {
             <div className="space-y-4 py-4">
               <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/30 p-3 mb-4">
                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                  <strong>Important :</strong> Ajoutez des photos pour documenter les travaux effectués et prouver que le signalement a été résolu.
+                  <strong>Important :</strong> Remplissez tous les champs et ajoutez des photos pour documenter les travaux effectués.
                 </p>
               </div>
+
+              {/* Commentaires techniques */}
+              <div className="space-y-2">
+                <Label htmlFor="commentaires-techniques-dashboard">Commentaires techniques *</Label>
+                <Textarea
+                  id="commentaires-techniques-dashboard"
+                  placeholder="Décrivez les travaux effectués, les solutions appliquées, les matériaux utilisés, etc."
+                  value={commentairesTechniques}
+                  onChange={(e) => setCommentairesTechniques(e.target.value)}
+                  rows={4}
+                  disabled={isUploadingPhotos}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Détails techniques de l'intervention réalisée
+                </p>
+              </div>
+
+              {/* Temps passé */}
+              <div className="space-y-2">
+                <Label htmlFor="temps-passe-dashboard">Temps passé pour résoudre le problème *</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="temps-heures-dashboard" className="text-xs text-muted-foreground">Heures</Label>
+                    <Input
+                      id="temps-heures-dashboard"
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={tempsPasseHours}
+                      onChange={(e) => setTempsPasseHours(e.target.value)}
+                      disabled={isUploadingPhotos}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="temps-minutes-dashboard" className="text-xs text-muted-foreground">Minutes</Label>
+                    <Input
+                      id="temps-minutes-dashboard"
+                      type="number"
+                      min="0"
+                      max="59"
+                      placeholder="0"
+                      value={tempsPasseMinutes}
+                      onChange={(e) => setTempsPasseMinutes(e.target.value)}
+                      disabled={isUploadingPhotos}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Temps total passé pour résoudre ce problème
+                </p>
+              </div>
+
+              {/* Photos d'intervention */}
               <div className="space-y-2">
                 <Label htmlFor="photos-intervention">Photos d'intervention *</Label>
                 <div className="flex items-center gap-2">
@@ -841,6 +934,9 @@ export default function TechnicienDashboard() {
                   setSelectedStatusChange(null)
                   setInterventionPhotos([])
                   setPhotoPreviews([])
+                  setCommentairesTechniques("")
+                  setTempsPasseHours("")
+                  setTempsPasseMinutes("")
                 }}
                 disabled={isUploadingPhotos}
               >
@@ -848,7 +944,7 @@ export default function TechnicienDashboard() {
               </Button>
               <Button
                 onClick={handleStatusChange}
-                disabled={isUploadingPhotos || interventionPhotos.length === 0}
+                disabled={isUploadingPhotos || interventionPhotos.length === 0 || !commentairesTechniques.trim() || (!tempsPasseHours.trim() && !tempsPasseMinutes.trim())}
               >
                 {isUploadingPhotos ? (
                   <>

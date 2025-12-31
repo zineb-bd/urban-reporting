@@ -68,6 +68,12 @@ public class Signalement {
     @Column(columnDefinition = "TEXT", nullable = true)
     private String justificationRefus;
     
+    @Column(name = "commentaires_techniques", columnDefinition = "TEXT", nullable = true)
+    private String commentairesTechniques; // Commentaires techniques lors de la résolution
+    
+    @Column(name = "temps_passe_minutes", nullable = true)
+    private Integer tempsPasseMinutes; // Temps passé en minutes pour résoudre le problème
+    
     @OneToMany(mappedBy = "signalement", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "signalement"})
     @OrderBy("dateCreation ASC")

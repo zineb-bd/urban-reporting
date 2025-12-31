@@ -9,6 +9,7 @@ import com.cityreport.model.Signalement;
 import com.cityreport.model.User;
 import com.cityreport.model.Notification;
 import com.cityreport.model.PhotoIntervention;
+import com.cityreport.repository.SignalementRepository;
 import com.cityreport.service.CommentaireService;
 import com.cityreport.service.NotificationService;
 import com.cityreport.service.PhotoInterventionService;
@@ -31,6 +32,7 @@ import java.util.Map;
 public class SignalementController {
     
     private final SignalementService signalementService;
+    private final SignalementRepository signalementRepository;
     private final UserService userService;
     private final CommentaireService commentaireService;
     private final NotificationService notificationService;
@@ -156,7 +158,8 @@ public class SignalementController {
     @PatchMapping("/{id}/statut")
     public ResponseEntity<Signalement> updateStatut(
             @PathVariable Long id,
-            @RequestParam Signalement.Statut statut) {
+            @RequestParam Signalement.Statut statut,
+            @RequestBody(required = false) Map<String, Object> requestBody) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
         User user = userService.findByEmail(email);
@@ -167,6 +170,25 @@ public class SignalementController {
         }
         
         Signalement signalement = signalementService.updateStatut(id, statut);
+        
+        // Si le statut est RESOLU et que des données de résolution sont fournies, les sauvegarder
+        if (statut == Signalement.Statut.RESOLU && requestBody != null) {
+            if (requestBody.containsKey("commentairesTechniques")) {
+                signalement.setCommentairesTechniques((String) requestBody.get("commentairesTechniques"));
+            }
+            if (requestBody.containsKey("tempsPasseMinutes")) {
+                Object tempsObj = requestBody.get("tempsPasseMinutes");
+                if (tempsObj != null) {
+                    if (tempsObj instanceof Integer) {
+                        signalement.setTempsPasseMinutes((Integer) tempsObj);
+                    } else if (tempsObj instanceof Number) {
+                        signalement.setTempsPasseMinutes(((Number) tempsObj).intValue());
+                    }
+                }
+            }
+            signalement = signalementRepository.save(signalement);
+        }
+        
         return ResponseEntity.ok(signalement);
     }
     

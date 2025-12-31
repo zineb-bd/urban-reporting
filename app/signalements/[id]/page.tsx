@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { MapPin, Calendar, User, AlertCircle, Clock, CheckCircle2, MessageSquare, Loader2, Camera, Upload, X, Trash2 } from "lucide-react"
+import { MapPin, Calendar, User, AlertCircle, Clock, CheckCircle2, MessageSquare, Loader2, Camera, Upload, X, Trash2, Settings } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect, use, useMemo } from "react"
 import dynamic from "next/dynamic"
@@ -86,6 +86,8 @@ interface Signalement {
   adresse?: string | null
   user: SignalementUser
   technicien?: SignalementUser | null
+  commentairesTechniques?: string | null
+  tempsPasseMinutes?: number | null
 }
 
 interface Technicien {
@@ -122,6 +124,14 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
   const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [photosIntervention, setPhotosIntervention] = useState<PhotoIntervention[]>([])
+  const [statusChangeDialogOpen, setStatusChangeDialogOpen] = useState(false)
+  const [selectedNewStatus, setSelectedNewStatus] = useState<string>("")
+  const [interventionPhotos, setInterventionPhotos] = useState<File[]>([])
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
+  const [isChangingStatus, setIsChangingStatus] = useState(false)
+  const [commentairesTechniques, setCommentairesTechniques] = useState("")
+  const [tempsPasseHours, setTempsPasseHours] = useState("")
+  const [tempsPasseMinutes, setTempsPasseMinutes] = useState("")
 
   // Icône personnalisée de pin rouge pour le marqueur
   const customIcon = useMemo(() => {
@@ -194,6 +204,12 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
         }
 
         const signalementData = await signalementResponse.json()
+        console.log("📋 Signalement récupéré:", {
+          id: signalementData.id,
+          statut: signalementData.statut,
+          commentairesTechniques: signalementData.commentairesTechniques,
+          tempsPasseMinutes: signalementData.tempsPasseMinutes,
+        })
         setSignalement(signalementData)
         if (signalementData.technicien) {
           setSelectedTechnicienId(signalementData.technicien.id.toString())
@@ -511,6 +527,231 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
     currentUser.role === "ADMIN"
   )
 
+  // Vérifier si l'utilisateur peut changer le statut
+  const canChangeStatus = currentUser && (
+    currentUser.role === "ADMIN" || 
+    (currentUser.role === "TECHNICIEN" && signalement?.technicien?.id === currentUser.id && signalement?.accepteAssignation === true)
+  )
+
+  const handleStatusChangeClick = (newStatus: string) => {
+    setSelectedNewStatus(newStatus)
+    setInterventionPhotos([])
+    setPhotoPreviews([])
+    setStatusChangeDialogOpen(true)
+  }
+
+  const handleStatusChangeDirect = async (newStatus: string) => {
+    if (!signalement) return
+
+    try {
+      setIsChangingStatus(true)
+      setError(null)
+
+      const token = localStorage.getItem("token")
+      if (!token) {
+        throw new Error("Token d'authentification manquant")
+      }
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+      const response = await fetch(`${apiUrl}/api/signalements/${id}/statut?statut=${newStatus}`, {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem("token")
+          localStorage.removeItem("user")
+          router.push("/login")
+          return
+        }
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`)
+      }
+
+      const updatedSignalement = await response.json()
+      setSignalement(updatedSignalement)
+      toast.success("Statut mis à jour avec succès")
+    } catch (err: any) {
+      console.error("Erreur lors de la mise à jour du statut:", err)
+      toast.error(err.message || "Une erreur est survenue lors de la mise à jour du statut")
+    } finally {
+      setIsChangingStatus(false)
+    }
+  }
+
+  const handleInterventionPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+
+    const remainingSlots = 5 - interventionPhotos.length
+    const filesToAdd = files.slice(0, remainingSlots)
+
+    filesToAdd.forEach((file) => {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`L'image ${file.name} est trop grande (max 10MB)`)
+        return
+      }
+      if (!file.type.startsWith("image/")) {
+        toast.error(`Le fichier ${file.name} doit être une image`)
+        return
+      }
+
+      setInterventionPhotos((prev) => [...prev, file])
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPhotoPreviews((prev) => [...prev, reader.result as string])
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const removeInterventionPhoto = (index: number) => {
+    setInterventionPhotos((prev) => prev.filter((_, i) => i !== index))
+    setPhotoPreviews((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleStatusChangeWithPhotos = async () => {
+    if (!signalement || !selectedNewStatus) return
+
+    try {
+      setIsChangingStatus(true)
+      setError(null)
+
+      const token = localStorage.getItem("token")
+      if (!token) {
+        throw new Error("Token d'authentification manquant")
+      }
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+
+      // Validation des champs obligatoires
+      if (!commentairesTechniques.trim()) {
+        toast.error("Veuillez remplir les commentaires techniques")
+        setIsChangingStatus(false)
+        return
+      }
+
+      if (!tempsPasseHours.trim() && !tempsPasseMinutes.trim()) {
+        toast.error("Veuillez indiquer le temps passé pour résoudre le problème")
+        setIsChangingStatus(false)
+        return
+      }
+
+      // Calculer le temps total en minutes
+      const hours = parseInt(tempsPasseHours) || 0
+      const minutes = parseInt(tempsPasseMinutes) || 0
+      const totalMinutes = hours * 60 + minutes
+
+      if (totalMinutes <= 0) {
+        toast.error("Le temps passé doit être supérieur à 0")
+        setIsChangingStatus(false)
+        return
+      }
+
+      // 1. Mettre à jour le statut avec les commentaires techniques et le temps passé
+      const statusResponse = await fetch(`${apiUrl}/api/signalements/${id}/statut?statut=${selectedNewStatus}`, {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          commentairesTechniques: commentairesTechniques.trim(),
+          tempsPasseMinutes: totalMinutes,
+        }),
+      })
+
+      if (!statusResponse.ok) {
+        if (statusResponse.status === 401 || statusResponse.status === 403) {
+          localStorage.removeItem("token")
+          localStorage.removeItem("user")
+          router.push("/login")
+          return
+        }
+        throw new Error(`Erreur ${statusResponse.status}: ${statusResponse.statusText}`)
+      }
+
+      const updatedSignalement = await statusResponse.json()
+      setSignalement(updatedSignalement)
+
+      // 2. Ajouter les photos d'intervention si présentes
+      if (selectedNewStatus === "RESOLU" && interventionPhotos.length > 0) {
+        for (let i = 0; i < interventionPhotos.length; i++) {
+          const photoFile = interventionPhotos[i]
+          const photoPreview = photoPreviews[i]
+
+          try {
+            let photoBase64 = photoPreview
+            if (!photoPreview.startsWith("data:")) {
+              const reader = new FileReader()
+              photoBase64 = await new Promise<string>((resolve, reject) => {
+                reader.onloadend = () => resolve(reader.result as string)
+                reader.onerror = reject
+                reader.readAsDataURL(photoFile)
+              })
+            }
+
+            const photoResponse = await fetch(`${apiUrl}/api/signalements/${id}/photos-intervention`, {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                photoUrl: photoBase64,
+              }),
+            })
+
+            if (!photoResponse.ok) {
+              const errorText = await photoResponse.text()
+              console.error("Erreur lors de l'ajout d'une photo:", errorText)
+              toast.error(`Erreur lors de l'ajout de la photo ${i + 1}`)
+            }
+          } catch (photoError: any) {
+            console.error("Erreur lors de l'ajout d'une photo:", photoError)
+            toast.error(`Erreur lors de l'ajout de la photo ${i + 1}: ${photoError.message}`)
+          }
+        }
+      }
+
+      // 3. Recharger les photos d'intervention
+      try {
+        const photosResponse = await fetch(`${apiUrl}/api/signalements/${id}/photos-intervention`, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
+        if (photosResponse.ok) {
+          const photosData = await photosResponse.json()
+          setPhotosIntervention(photosData || [])
+        }
+      } catch (photosError) {
+        console.error("Erreur lors de la récupération des photos:", photosError)
+      }
+
+      // 4. Fermer le dialog et réinitialiser
+      setStatusChangeDialogOpen(false)
+      setSelectedNewStatus("")
+      setInterventionPhotos([])
+      setPhotoPreviews([])
+      setCommentairesTechniques("")
+      setTempsPasseHours("")
+      setTempsPasseMinutes("")
+
+      toast.success(`Statut mis à jour avec succès${interventionPhotos.length > 0 ? ` et ${interventionPhotos.length} photo(s) ajoutée(s)` : ""}`)
+    } catch (err: any) {
+      console.error("Erreur lors de la mise à jour du statut:", err)
+      toast.error(err.message || "Une erreur est survenue lors de la mise à jour du statut")
+    } finally {
+      setIsChangingStatus(false)
+    }
+  }
+
   const handleDelete = async () => {
     if (!signalement) return
 
@@ -671,8 +912,8 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
                   </div>
                   <span className="text-sm text-muted-foreground">#{signalement.id}</span>
                 </div>
-                <CardTitle className="text-2xl mb-3">{signalement.titre}</CardTitle>
-                <CardDescription className="flex flex-wrap items-center gap-4">
+                <CardTitle className="text-2xl mb-3 leading-tight">{signalement.titre}</CardTitle>
+                <CardDescription className="flex flex-wrap items-center gap-4 mt-2">
                   <span className="flex items-center gap-1">
                     <User className="h-4 w-4" />
                     {signalement.user.prenom} {signalement.user.nom}
@@ -1023,6 +1264,54 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
               </CardContent>
             </Card>
 
+            {/* Informations de résolution (admin et technicien seulement, pas le citoyen) */}
+            {(currentUser?.role === "ADMIN" || currentUser?.role === "TECHNICIEN") && signalement.statut === "RESOLU" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Informations de résolution</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {signalement.commentairesTechniques ? (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">Commentaires techniques</h4>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {signalement.commentairesTechniques}
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">Commentaires techniques</h4>
+                      <p className="text-sm text-muted-foreground italic">Aucun commentaire technique disponible</p>
+                    </div>
+                  )}
+                  {signalement.tempsPasseMinutes !== null && signalement.tempsPasseMinutes !== undefined ? (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">Temps passé</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {Math.floor(signalement.tempsPasseMinutes / 60) > 0 && (
+                          <>
+                            {Math.floor(signalement.tempsPasseMinutes / 60)} heure{Math.floor(signalement.tempsPasseMinutes / 60) > 1 ? "s" : ""}
+                            {signalement.tempsPasseMinutes % 60 > 0 && " et "}
+                          </>
+                        )}
+                        {signalement.tempsPasseMinutes % 60 > 0 && (
+                          <>
+                            {signalement.tempsPasseMinutes % 60} minute{signalement.tempsPasseMinutes % 60 > 1 ? "s" : ""}
+                          </>
+                        )}
+                        {signalement.tempsPasseMinutes === 0 && "0 minute"}
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">Temps passé</h4>
+                      <p className="text-sm text-muted-foreground italic">Aucune information sur le temps passé</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Localisation */}
             <Card>
               <CardHeader>
@@ -1032,12 +1321,13 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="h-64 sm:h-80 w-full overflow-hidden rounded-lg border border-border">
+                <div className="h-64 sm:h-80 w-full overflow-hidden rounded-lg border border-border bg-muted/30">
                   {isMapReady && (
                     <MapContainer
                       center={[signalement.latitude, signalement.longitude]}
                       zoom={15}
                       style={{ height: "100%", width: "100%" }}
+                      className="rounded-lg"
                     >
                       <TileLayer
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -1062,19 +1352,63 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
                 {signalement.adresse && (
                   <div className="flex items-start gap-2 text-sm">
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="text-muted-foreground break-words">{signalement.adresse}</span>
+                    <span className="text-muted-foreground break-words leading-relaxed">{signalement.adresse}</span>
                   </div>
                 )}
                 <div className="text-xs text-muted-foreground pt-2 border-t border-border">
-                  <p>Coordonnées: {signalement.latitude.toFixed(6)}, {signalement.longitude.toFixed(6)}</p>
+                  <p className="font-mono">Coordonnées: {signalement.latitude.toFixed(6)}, {signalement.longitude.toFixed(6)}</p>
                 </div>
               </CardContent>
             </Card>
 
+            {/* Changer le statut */}
+            {canChangeStatus && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Changer le statut
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium">Nouveau statut</label>
+                    <Select
+                      value={signalement.statut}
+                      onValueChange={(value) => {
+                        if (currentUser?.role === "TECHNICIEN" && value === "RESOLU") {
+                          handleStatusChangeClick(value)
+                        } else {
+                          handleStatusChangeDirect(value)
+                        }
+                      }}
+                      disabled={isChangingStatus}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NOUVEAU">Nouveau</SelectItem>
+                        <SelectItem value="EN_ATTENTE">En attente</SelectItem>
+                        <SelectItem value="EN_COURS">En cours</SelectItem>
+                        <SelectItem value="RESOLU">Résolu</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {isChangingStatus && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Mise à jour en cours...
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {currentUser?.role === "ADMIN" && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Assigner un technicien</CardTitle>
+                  <CardTitle className="text-lg">Assigner un technicien</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -1122,6 +1456,171 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
             )}
           </div>
         </div>
+
+        {/* Dialog pour le changement de statut à RESOLU avec photos (technicien) */}
+        {currentUser?.role === "TECHNICIEN" && (
+          <Dialog open={statusChangeDialogOpen} onOpenChange={setStatusChangeDialogOpen}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Marquer comme résolu</DialogTitle>
+                <DialogDescription>
+                  Marquez ce signalement comme résolu et ajoutez des photos d'intervention pour documenter les travaux effectués.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/30 p-3 mb-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Important :</strong> Remplissez tous les champs et ajoutez des photos pour documenter les travaux effectués.
+                  </p>
+                </div>
+
+                {/* Commentaires techniques */}
+                <div className="space-y-2">
+                  <Label htmlFor="commentaires-techniques">Commentaires techniques *</Label>
+                  <Textarea
+                    id="commentaires-techniques"
+                    placeholder="Décrivez les travaux effectués, les solutions appliquées, les matériaux utilisés, etc."
+                    value={commentairesTechniques}
+                    onChange={(e) => setCommentairesTechniques(e.target.value)}
+                    rows={4}
+                    disabled={isChangingStatus}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Détails techniques de l'intervention réalisée
+                  </p>
+                </div>
+
+                {/* Temps passé */}
+                <div className="space-y-2">
+                  <Label htmlFor="temps-passe">Temps passé pour résoudre le problème *</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="temps-heures" className="text-xs text-muted-foreground">Heures</Label>
+                      <Input
+                        id="temps-heures"
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={tempsPasseHours}
+                        onChange={(e) => setTempsPasseHours(e.target.value)}
+                        disabled={isChangingStatus}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="temps-minutes" className="text-xs text-muted-foreground">Minutes</Label>
+                      <Input
+                        id="temps-minutes"
+                        type="number"
+                        min="0"
+                        max="59"
+                        placeholder="0"
+                        value={tempsPasseMinutes}
+                        onChange={(e) => setTempsPasseMinutes(e.target.value)}
+                        disabled={isChangingStatus}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Temps total passé pour résoudre ce problème
+                  </p>
+                </div>
+
+                {/* Photos d'intervention */}
+                <div className="space-y-2">
+                  <Label htmlFor="photos-intervention-detail">Photos d'intervention *</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="photos-intervention-detail"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleInterventionPhotoChange}
+                      disabled={isChangingStatus || interventionPhotos.length >= 5}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        const input = document.getElementById("photos-intervention-detail") as HTMLInputElement
+                        input?.click()
+                      }}
+                      disabled={isChangingStatus || interventionPhotos.length >= 5}
+                    >
+                      <Camera className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Vous devez ajouter au moins une photo pour marquer le signalement comme résolu. Maximum 5 photos, 10MB par photo.
+                  </p>
+                </div>
+
+                {/* Aperçu des photos */}
+                {photoPreviews.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Photos sélectionnées ({photoPreviews.length}/5)</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {photoPreviews.map((preview, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={preview}
+                            alt={`Photo ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg border"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
+                            onClick={() => removeInterventionPhoto(index)}
+                            disabled={isChangingStatus}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setStatusChangeDialogOpen(false)
+                    setSelectedNewStatus("")
+                    setInterventionPhotos([])
+                    setPhotoPreviews([])
+                    setCommentairesTechniques("")
+                    setTempsPasseHours("")
+                    setTempsPasseMinutes("")
+                  }}
+                  disabled={isChangingStatus}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={handleStatusChangeWithPhotos}
+                  disabled={isChangingStatus || interventionPhotos.length === 0 || !commentairesTechniques.trim() || (!tempsPasseHours.trim() && !tempsPasseMinutes.trim())}
+                >
+                  {isChangingStatus ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Traitement...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Marquer comme résolu
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </main>
     </div>
   )
