@@ -13,12 +13,36 @@ export default function ReglementPage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    // Vérifier d'abord le localStorage avant de rediriger
+    const token = localStorage.getItem("token")
+    const savedUser = localStorage.getItem("user")
+    
+    if (!token || !savedUser) {
       router.push("/login")
       return
-    } else if (user?.role !== "TECHNICIEN") {
-      router.push("/")
+    }
+    
+    // Vérifier le rôle depuis le localStorage
+    try {
+      const parsedUser = JSON.parse(savedUser)
+      if (parsedUser.role !== "TECHNICIEN") {
+        router.push("/")
+        return
+      }
+    } catch {
+      router.push("/login")
       return
+    }
+    
+    // Si isAuthenticated est false mais qu'on a un token, attendre un peu
+    if (!isAuthenticated) {
+      const timer = setTimeout(() => {
+        const stillNoAuth = !localStorage.getItem("token")
+        if (stillNoAuth) {
+          router.push("/login")
+        }
+      }, 1000)
+      return () => clearTimeout(timer)
     }
   }, [isAuthenticated, user, router])
 

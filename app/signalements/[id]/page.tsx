@@ -159,9 +159,26 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
   }, [])
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    // Vérifier d'abord le localStorage avant de rediriger
+    const token = localStorage.getItem("token")
+    const savedUser = localStorage.getItem("user")
+    
+    // Si pas de token ou user dans localStorage, rediriger immédiatement
+    if (!token || !savedUser) {
       router.push("/login")
       return
+    }
+    
+    // Si isAuthenticated est false mais qu'on a un token, attendre un peu
+    // pour que l'auth context se charge depuis localStorage
+    if (!isAuthenticated) {
+      const timer = setTimeout(() => {
+        const stillNoAuth = !localStorage.getItem("token")
+        if (stillNoAuth) {
+          router.push("/login")
+        }
+      }, 1000)
+      return () => clearTimeout(timer)
     }
 
     const fetchData = async () => {
@@ -795,7 +812,12 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
       }
 
       toast.success("Signalement supprimé avec succès")
-      router.push("/signalements")
+      // Rediriger selon le rôle de l'utilisateur
+      if (currentUser?.role === "CITOYEN") {
+        router.push("/mes-signalements")
+      } else {
+        router.push("/signalements")
+      }
     } catch (err: any) {
       console.error("Erreur lors de la suppression du signalement:", err)
       toast.error(err.message || "Une erreur est survenue lors de la suppression")
@@ -804,8 +826,21 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
     }
   }
 
-  if (!isAuthenticated) {
+  // Vérifier le localStorage avant de retourner null
+  const token = localStorage.getItem("token")
+  const savedUser = localStorage.getItem("user")
+  
+  if (!token || !savedUser) {
     return null
+  }
+  
+  if (!isAuthenticated) {
+    // Attendre que l'auth context se charge
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
   }
 
   if (isLoading) {
@@ -825,7 +860,16 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
           </CardHeader>
           <CardContent>
             <p className="text-destructive">{error}</p>
-            <Button onClick={() => router.push("/signalements")} className="mt-4">
+            <Button 
+              onClick={() => {
+                if (currentUser?.role === "CITOYEN") {
+                  router.push("/mes-signalements")
+                } else {
+                  router.push("/signalements")
+                }
+              }} 
+              className="mt-4"
+            >
               Retour aux signalements
             </Button>
           </CardContent>
@@ -847,7 +891,10 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6 flex items-center justify-between">
-          <Link href="/signalements" className="text-sm text-muted-foreground hover:text-foreground">
+          <Link 
+            href={currentUser?.role === "CITOYEN" ? "/mes-signalements" : "/signalements"} 
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
             ← Retour aux signalements
           </Link>
           {currentUser?.role === "ADMIN" && (

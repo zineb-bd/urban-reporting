@@ -25,64 +25,67 @@ export function Header() {
 
   return (
     <header className="border-b border-border bg-card">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2">
+      <div className="container mx-auto flex h-16 items-center px-4">
+        <Link href="/" className="flex items-center gap-2 flex-shrink-0">
           <img src="/logo.svg" alt="CitéConnect" className="h-8 w-8" />
           <span className="text-xl font-semibold text-[#00648E]">CitéConnect</span>
         </Link>
-        <nav className="flex items-center gap-6">
-          {!isAuthenticated && (
-            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-              Accueil
+        
+        {/* Navigation centrée pour admin, normale pour les autres */}
+        {user?.role === "ADMIN" ? (
+          <nav className="flex items-center gap-6 flex-1 justify-center">
+            <Link href="/admin/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+              Dashboard
             </Link>
-          )}
+            <Link href="/signalements" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+              Tous les signalements
+            </Link>
+            <Link href="/admin/rapports" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+              Générer un rapport
+            </Link>
+            <Link href="/admin/contact-messages" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+              Messages de contact
+            </Link>
+          </nav>
+        ) : (
+          <nav className="flex items-center gap-6">
+            {!isAuthenticated && (
+              <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                Accueil
+              </Link>
+            )}
 
-          {/* Citoyen: Voir ses signalements et tous les signalements */}
-          {user?.role === "CITOYEN" && (
-            <>
+            {/* Citoyen: Voir ses signalements et tous les signalements */}
+            {user?.role === "CITOYEN" && (
+              <>
+                <Link
+                  href="/signalements"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Tous les signalements
+                </Link>
+                <Link
+                  href="/mes-signalements"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Mes signalements
+                </Link>
+              </>
+            )}
+
+            {/* Technicien: Consulter assignations + Changer statuts */}
+            {user?.role === "TECHNICIEN" && (
               <Link
-                href="/signalements"
+                href="/technicien/dashboard"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground"
               >
-                Tous les signalements
+                Mes assignations
               </Link>
-              <Link
-                href="/mes-signalements"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                Mes signalements
-              </Link>
-            </>
-          )}
+            )}
+          </nav>
+        )}
 
-          {/* Technicien: Consulter assignations + Changer statuts */}
-          {user?.role === "TECHNICIEN" && (
-            <Link
-              href="/technicien/dashboard"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground"
-            >
-              Mes assignations
-            </Link>
-          )}
-
-          {/* Admin: Dashboard, Assigner signalement, Générer rapport */}
-          {user?.role === "ADMIN" && (
-            <>
-              <Link href="/admin/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                Dashboard
-              </Link>
-              <Link href="/signalements" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                Assigner un signalement
-              </Link>
-              <Link href="/admin/rapports" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                Générer un rapport
-              </Link>
-              <Link href="/admin/contact-messages" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                Messages de contact
-              </Link>
-            </>
-          )}
-
+        <div className="flex items-center gap-6 flex-shrink-0 ml-auto">
           {isAuthenticated && <NotificationBell />}
           <ThemeToggle />
           {isAuthenticated ? (
@@ -156,8 +159,8 @@ export function Header() {
                   <DropdownMenuItem asChild>
                     <Link href="/parametres" className="cursor-pointer">
                       <Settings className="mr-2 h-4 w-4" />
-                      Paramètres
-                    </Link>
+                      Gestion des utilisateurs
+                      </Link>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
@@ -177,7 +180,7 @@ export function Header() {
               </Button>
             </>
           )}
-        </nav>
+        </div>
       </div>
     </header>
   )
