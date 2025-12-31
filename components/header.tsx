@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/lib/auth-context"
-import { User, LogOut, LayoutDashboard, FileText, Settings } from "lucide-react"
+import { User, LogOut, LayoutDashboard, FileText, Settings, Star } from "lucide-react"
 import Link from "next/link"
 import { NotificationBell } from "@/components/notification-bell"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -32,14 +32,9 @@ export function Header() {
         </Link>
         <nav className="flex items-center gap-6">
           {!isAuthenticated && (
-            <>
-              <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                Accueil
-              </Link>
-              <Link href="/signalements" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                Signalements
-              </Link>
-            </>
+            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+              Accueil
+            </Link>
           )}
 
           {/* Citoyen: Voir ses signalements et tous les signalements */}
@@ -121,6 +116,14 @@ export function Header() {
                     <Link href="/technicien/dashboard" className="cursor-pointer">
                       <LayoutDashboard className="mr-2 h-4 w-4" />
                       Mes assignations
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                {user?.role === "CITOYEN" && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/avis" className="cursor-pointer">
+                      <Star className="mr-2 h-4 w-4" />
+                      Donner mon avis
                     </Link>
                   </DropdownMenuItem>
                 )}

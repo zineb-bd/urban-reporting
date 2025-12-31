@@ -228,13 +228,13 @@ export default function NotificationsPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <CardTitle className={!notification.lu ? "font-semibold" : ""}>
+                        <CardTitle className={`${!notification.lu ? "font-semibold" : ""} text-foreground`}>
                           {notification.titre}
                         </CardTitle>
-                        {!notification.lu && <Badge variant="default">Nouveau</Badge>}
-                        <Badge variant="outline">{getTypeLabel(notification.type)}</Badge>
+                        {!notification.lu && <Badge variant="default" className="text-white font-semibold">Nouveau</Badge>}
+                        <Badge variant="outline" className="text-foreground dark:text-foreground border-border font-medium">{getTypeLabel(notification.type)}</Badge>
                       </div>
-                      <CardDescription className="mt-2">{notification.message}</CardDescription>
+                      <CardDescription className="mt-2 text-foreground dark:text-foreground">{notification.message}</CardDescription>
                       <p className="text-xs text-muted-foreground mt-2">{formatDate(notification.dateCreation)}</p>
                     </div>
                     <div className="flex gap-2 ml-4">

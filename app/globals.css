@@ -135,3 +135,35 @@
 .leaflet-tile-container img {
   max-width: none !important;
 }
+
+/* Notification item styles - when focused (green background), text becomes white and title bold */
+.notification-item:focus,
+.notification-item[data-highlighted],
+.notification-item:focus-visible {
+  background-color: var(--accent) !important;
+}
+
+.notification-item:focus .notification-title,
+.notification-item[data-highlighted] .notification-title,
+.notification-item:focus-visible .notification-title {
+  color: white !important;
+  font-weight: bold !important;
+}
+
+.notification-item:focus .notification-message,
+.notification-item[data-highlighted] .notification-message,
+.notification-item:focus-visible .notification-message {
+  color: white !important;
+}
+
+.notification-item:focus .notification-date,
+.notification-item[data-highlighted] .notification-date,
+.notification-item:focus-visible .notification-date {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.notification-item:focus .notification-dot,
+.notification-item[data-highlighted] .notification-dot,
+.notification-item:focus-visible .notification-dot {
+  background-color: white !important;
+}
