@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { MapPin, Calendar, User, AlertCircle, Clock, CheckCircle2, MessageSquare, Loader2, Camera, Upload, X, Trash2, Settings } from "lucide-react"
+import { MapPin, Calendar, User, AlertCircle, Clock, CheckCircle2, MessageSquare, Loader2, Camera, Upload, X, Trash2, Settings, Edit } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect, use, useMemo } from "react"
 import dynamic from "next/dynamic"
@@ -132,6 +132,8 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
   const [commentairesTechniques, setCommentairesTechniques] = useState("")
   const [tempsPasseHours, setTempsPasseHours] = useState("")
   const [tempsPasseMinutes, setTempsPasseMinutes] = useState("")
+  const [isAccepting, setIsAccepting] = useState(false)
+  const [isRefusing, setIsRefusing] = useState(false)
 
   // Icône personnalisée de pin rouge pour le marqueur
   const customIcon = useMemo(() => {
@@ -768,6 +770,106 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
     }
   }
 
+  const handleAcceptSignalement = async () => {
+    if (!signalement) return
+
+    try {
+      setIsAccepting(true)
+      setError(null)
+
+      const token = localStorage.getItem("token")
+      if (!token) {
+        throw new Error("Token d'authentification manquant")
+      }
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+      const response = await fetch(`${apiUrl}/api/signalements/${id}/admin/accepter`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem("token")
+          localStorage.removeItem("user")
+          router.push("/login")
+          return
+        }
+
+        const errorText = await response.text()
+        let errorMessage = `Erreur ${response.status}: ${response.statusText}`
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.message || errorData.error || errorMessage
+        } catch {
+          errorMessage = errorText || errorMessage
+        }
+        throw new Error(errorMessage)
+      }
+
+      const updatedSignalement = await response.json()
+      setSignalement(updatedSignalement)
+      toast.success("Signalement accepté avec succès")
+    } catch (err: any) {
+      console.error("Erreur lors de l'acceptation du signalement:", err)
+      toast.error(err.message || "Une erreur est survenue lors de l'acceptation du signalement")
+    } finally {
+      setIsAccepting(false)
+    }
+  }
+
+  const handleRefuseSignalement = async () => {
+    if (!signalement) return
+
+    try {
+      setIsRefusing(true)
+      setError(null)
+
+      const token = localStorage.getItem("token")
+      if (!token) {
+        throw new Error("Token d'authentification manquant")
+      }
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+      const response = await fetch(`${apiUrl}/api/signalements/${id}/admin/refuser`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem("token")
+          localStorage.removeItem("user")
+          router.push("/login")
+          return
+        }
+
+        const errorText = await response.text()
+        let errorMessage = `Erreur ${response.status}: ${response.statusText}`
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.message || errorData.error || errorMessage
+        } catch {
+          errorMessage = errorText || errorMessage
+        }
+        throw new Error(errorMessage)
+      }
+
+      toast.success("Signalement refusé et supprimé")
+      router.push("/signalements")
+    } catch (err: any) {
+      console.error("Erreur lors du refus du signalement:", err)
+      toast.error(err.message || "Une erreur est survenue lors du refus du signalement")
+      setIsRefusing(false)
+    }
+  }
+
   const handleDelete = async () => {
     if (!signalement) return
 
@@ -825,12 +927,19 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
     }
   }
 
-  // Vérifier le localStorage avant de retourner null
-  const token = localStorage.getItem("token")
-  const savedUser = localStorage.getItem("user")
+  // Vérifier le localStorage uniquement côté client
+  const [isClient, setIsClient] = useState(false)
   
-  if (!token || !savedUser) {
-    return null
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+  
+  if (!isClient) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
   }
   
   if (!isAuthenticated) {
@@ -896,41 +1005,52 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
           >
             ← Retour aux signalements
           </Link>
-          {currentUser?.role === "ADMIN" && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Supprimer
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Supprimer le signalement</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Êtes-vous sûr de vouloir supprimer le signalement "{signalement.titre}" ? 
-                    Cette action est irréversible et supprimera définitivement le signalement et tous ses commentaires.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Annuler</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    disabled={isDeleting}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    {isDeleting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Suppression...
-                      </>
-                    ) : (
-                      "Supprimer"
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+          {((currentUser?.role === "ADMIN") || 
+            (currentUser?.role === "CITOYEN" && signalement.user.id === currentUser.id && signalement.statut !== "RESOLU")) && (
+            <div className="flex gap-2">
+              {currentUser?.role === "CITOYEN" && signalement.user.id === currentUser.id && signalement.statut !== "RESOLU" && (
+                <Link href={`/signalements/${id}/modifier`}>
+                  <Button variant="outline" size="sm">
+                    <Edit className="mr-2 h-4 w-4" />
+                    Modifier
+                  </Button>
+                </Link>
+              )}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Supprimer
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Supprimer le signalement</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Êtes-vous sûr de vouloir supprimer le signalement "{signalement.titre}" ? 
+                      Cette action est irréversible et supprimera définitivement le signalement et tous ses commentaires.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Suppression...
+                        </>
+                      ) : (
+                        "Supprimer"
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           )}
         </div>
 
@@ -1447,6 +1567,74 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
                       Mise à jour en cours...
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {currentUser?.role === "ADMIN" && signalement.statut === "NOUVEAU" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Actions administrateur</CardTitle>
+                  <CardDescription>Accepter ou refuser ce signalement</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={handleAcceptSignalement}
+                      disabled={isAccepting || isRefusing}
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                    >
+                      {isAccepting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Acceptation...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          Accepter
+                        </>
+                      )}
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          disabled={isAccepting || isRefusing}
+                          className="flex-1"
+                        >
+                          <X className="mr-2 h-4 w-4" />
+                          Refuser
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Refuser le signalement</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Êtes-vous sûr de vouloir refuser le signalement "{signalement.titre}" ? 
+                            Cette action est irréversible et supprimera définitivement le signalement.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleRefuseSignalement}
+                            disabled={isRefusing}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {isRefusing ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Refus en cours...
+                              </>
+                            ) : (
+                              "Refuser"
+                            )}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </CardContent>
               </Card>
             )}

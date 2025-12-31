@@ -230,6 +230,42 @@ public class SignalementService {
     }
     
     @Transactional
+    public Signalement update(Long id, SignalementRequest request, User user) {
+        Signalement signalement = findById(id);
+        
+        // Vérifier que l'utilisateur est le propriétaire ou un admin
+        if (!signalement.getUser().getId().equals(user.getId()) && user.getRole() != User.Role.ADMIN) {
+            throw new ForbiddenException("Vous n'avez pas l'autorisation de modifier ce signalement");
+        }
+        
+        // Vérifier que le signalement n'est pas résolu (les citoyens ne peuvent modifier que les signalements non résolus)
+        if (user.getRole() == User.Role.CITOYEN && signalement.getStatut() == Signalement.Statut.RESOLU) {
+            throw new ForbiddenException("Vous ne pouvez pas modifier un signalement résolu");
+        }
+        
+        // Validation des coordonnées
+        if (request.getLatitude() < -90 || request.getLatitude() > 90) {
+            throw new BadRequestException("La latitude doit être entre -90 et 90");
+        }
+        if (request.getLongitude() < -180 || request.getLongitude() > 180) {
+            throw new BadRequestException("La longitude doit être entre -180 et 180");
+        }
+        
+        signalement.setTitre(request.getTitre());
+        signalement.setDescription(request.getDescription());
+        signalement.setCategorie(request.getCategorie());
+        signalement.setPriorite(request.getPriorite());
+        signalement.setLatitude(request.getLatitude());
+        signalement.setLongitude(request.getLongitude());
+        signalement.setAdresse(request.getAdresse());
+        if (request.getPhotoUrl() != null) {
+            signalement.setPhotoUrl(request.getPhotoUrl());
+        }
+        
+        return signalementRepository.save(signalement);
+    }
+    
+    @Transactional
     public Signalement updatePhoto(Long id, String photoUrl, User user) {
         Signalement signalement = findById(id);
         
@@ -276,5 +312,67 @@ public class SignalementService {
         // Ne pas changer le statut, l'admin pourra réassigner à un autre technicien
         
         return signalementRepository.save(signalement);
+    }
+    
+    @Transactional
+    public Signalement accepterSignalementAdmin(Long id) {
+        Signalement signalement = findById(id);
+        
+        // Vérifier que le signalement est en statut NOUVEAU
+        if (signalement.getStatut() != Signalement.Statut.NOUVEAU) {
+            throw new BadRequestException("Seuls les signalements avec le statut NOUVEAU peuvent être acceptés");
+        }
+        
+        // Passer le statut à EN_ATTENTE
+        signalement.setStatut(Signalement.Statut.EN_ATTENTE);
+        Signalement saved = signalementRepository.save(signalement);
+        
+        // Créer une notification pour le créateur du signalement
+        if (notificationService != null) {
+            try {
+                notificationService.create(
+                    signalement.getUser(),
+                    "Signalement accepté",
+                    "Votre signalement \"" + signalement.getTitre() + "\" a été accepté et est en attente d'assignation",
+                    Notification.Type.STATUT_MODIFIE,
+                    saved
+                );
+            } catch (Exception e) {
+                // Ignorer les erreurs de notification
+            }
+        }
+        
+        return saved;
+    }
+    
+    @Transactional
+    public void refuserSignalementAdmin(Long id) {
+        Signalement signalement = findById(id);
+        
+        // Vérifier que le signalement est en statut NOUVEAU
+        if (signalement.getStatut() != Signalement.Statut.NOUVEAU) {
+            throw new BadRequestException("Seuls les signalements avec le statut NOUVEAU peuvent être refusés");
+        }
+        
+        User createur = signalement.getUser();
+        String titre = signalement.getTitre();
+        
+        // Supprimer le signalement
+        signalementRepository.deleteById(id);
+        
+        // Créer une notification pour le créateur du signalement
+        if (notificationService != null) {
+            try {
+                notificationService.create(
+                    createur,
+                    "Signalement refusé",
+                    "Votre signalement \"" + titre + "\" a été refusé",
+                    Notification.Type.SIGNALEMENT_SUPPRIME,
+                    null
+                );
+            } catch (Exception e) {
+                // Ignorer les erreurs de notification
+            }
+        }
     }
 }

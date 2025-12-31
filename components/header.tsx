@@ -55,37 +55,35 @@ export function Header() {
               </Link>
             )}
 
-            {/* Citoyen: Voir ses signalements et tous les signalements */}
-            {user?.role === "CITOYEN" && (
-              <>
-                <Link
-                  href="/signalements"
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground"
-                >
-                  Tous les signalements
-                </Link>
-                <Link
-                  href="/mes-signalements"
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground"
-                >
-                  Mes signalements
-                </Link>
-              </>
-            )}
-
-            {/* Technicien: Consulter assignations + Changer statuts */}
-            {user?.role === "TECHNICIEN" && (
-              <Link
-                href="/technicien/dashboard"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                Mes assignations
-              </Link>
-            )}
           </nav>
         )}
 
         <div className="flex items-center gap-6 flex-shrink-0 ml-auto">
+          {user?.role === "TECHNICIEN" && (
+            <Link
+              href="/technicien/dashboard"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              Mes assignations
+            </Link>
+          )}
+          {/* Citoyen: Voir ses signalements et tous les signalements */}
+          {user?.role === "CITOYEN" && (
+            <>
+              <Link
+                href="/signalements"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                Tous les signalements
+              </Link>
+              <Link
+                href="/mes-signalements"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                Mes signalements
+              </Link>
+            </>
+          )}
           {isAuthenticated && <NotificationBell />}
           <ThemeToggle />
           {isAuthenticated ? (

@@ -201,15 +201,29 @@ public class SignalementController {
         return ResponseEntity.ok(signalement);
     }
     
+    @PutMapping("/{id}")
+    public ResponseEntity<Signalement> updateSignalement(
+            @PathVariable Long id,
+            @Valid @RequestBody SignalementRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        User user = userService.findByEmail(email);
+        
+        Signalement signalement = signalementService.update(id, request, user);
+        return ResponseEntity.ok(signalement);
+    }
+    
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSignalement(@PathVariable Long id) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
         User user = userService.findByEmail(email);
         
-        // Seuls les admins peuvent supprimer un signalement
-        if (user.getRole() != User.Role.ADMIN) {
-            throw new ForbiddenException("Seuls les administrateurs peuvent supprimer un signalement");
+        Signalement signalement = signalementService.findById(id);
+        
+        // Vérifier que l'utilisateur est admin ou propriétaire du signalement
+        if (user.getRole() != User.Role.ADMIN && !signalement.getUser().getId().equals(user.getId())) {
+            throw new ForbiddenException("Vous n'avez pas l'autorisation de supprimer ce signalement");
         }
         
         signalementService.delete(id);
@@ -337,6 +351,36 @@ public class SignalementController {
     public ResponseEntity<List<PhotoIntervention>> getPhotosIntervention(@PathVariable Long id) {
         List<PhotoIntervention> photos = photoInterventionService.getPhotosBySignalement(id);
         return ResponseEntity.ok(photos);
+    }
+    
+    @PostMapping("/{id}/admin/accepter")
+    public ResponseEntity<Signalement> accepterSignalementAdmin(@PathVariable Long id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        User user = userService.findByEmail(email);
+        
+        // Seuls les admins peuvent accepter un signalement
+        if (user.getRole() != User.Role.ADMIN) {
+            throw new ForbiddenException("Seuls les administrateurs peuvent accepter un signalement");
+        }
+        
+        Signalement signalement = signalementService.accepterSignalementAdmin(id);
+        return ResponseEntity.ok(signalement);
+    }
+    
+    @PostMapping("/{id}/admin/refuser")
+    public ResponseEntity<Void> refuserSignalementAdmin(@PathVariable Long id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        User user = userService.findByEmail(email);
+        
+        // Seuls les admins peuvent refuser un signalement
+        if (user.getRole() != User.Role.ADMIN) {
+            throw new ForbiddenException("Seuls les administrateurs peuvent refuser un signalement");
+        }
+        
+        signalementService.refuserSignalementAdmin(id);
+        return ResponseEntity.noContent().build();
     }
 }
 
