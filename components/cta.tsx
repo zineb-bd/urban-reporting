@@ -31,16 +31,7 @@ export function CTA() {
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </Button>
-          <Button
-            variant="outline"
-            className="border-[#00648E]/30 text-foreground hover:bg-[#00648E]/10 h-12 px-8 text-base rounded-lg bg-transparent"
-            asChild
-          >
-            <Link href="/signalements">En savoir plus</Link>
-          </Button>
         </div>
-
-        <p className="text-sm text-foreground/60">Aucune carte de crédit requise. Accès gratuit pendant 14 jours.</p>
       </div>
     </section>
   )

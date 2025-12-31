@@ -1,15 +1,16 @@
 "use client"
 
 import type React from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import Link from "next/link"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { Eye, EyeOff } from "lucide-react"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -26,6 +27,8 @@ export default function RegisterPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   useEffect(() => {
     setIsMounted(true)
@@ -37,42 +40,24 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      // Vérifier que les mots de passe correspondent
       if (formData.password !== formData.confirmPassword) {
         setError("Les mots de passe ne correspondent pas")
         setLoading(false)
         return
       }
 
-      // Appeler l'API d'inscription
-      
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
       const response = await fetch(`${apiUrl}/api/auth/register`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          nom: formData.nom,
-          prenom: formData.prenom,
-          email: formData.email,
-          telephone: formData.telephone || null,
-          adresse: formData.adresse || null,
-          role: formData.role,
-          password: formData.password,
-          confirmPassword: formData.confirmPassword,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       })
 
       if (!response.ok) {
-        // Lire le contenu de la réponse d'abord
         const responseText = await response.text()
         let errorMessage = `Erreur ${response.status}: ${response.statusText}`
-        
         try {
           const errorData = JSON.parse(responseText)
-          
-          // Gérer les erreurs de validation qui viennent du backend
           if (errorData.errors) {
             const validationErrors = Object.entries(errorData.errors)
               .map(([field, message]) => `${field}: ${message}`)
@@ -83,57 +68,19 @@ export default function RegisterPage() {
           } else if (errorData.error) {
             errorMessage = errorData.error
           }
-        } catch {
-          // Si ce n'est pas du JSON, utiliser le texte brut
-          errorMessage = responseText || errorMessage
-        }
-        
-        console.error("Erreur d'inscription:", {
-          status: response.status,
-          statusText: response.statusText,
-          message: errorMessage
-        })
-        
+        } catch {}
         throw new Error(errorMessage)
       }
 
       const data = await response.json()
-      
-      console.log("✅ Inscription réussie:", data)
-      
-      // Sauvegarder le token et l'utilisateur
-      if (data.token) {
-        localStorage.setItem("token", data.token)
-        console.log("✅ Token sauvegardé")
-      }
+      if (data.token) localStorage.setItem("token", data.token)
       if (data.user) {
-        // Convertir l'utilisateur au format frontend
-        const userToSet = {
-          id: data.user.id,
-          nom: data.user.nom,
-          prenom: data.user.prenom,
-          email: data.user.email,
-          role: data.user.role,
-        }
-        localStorage.setItem("user", JSON.stringify(userToSet))
-        console.log("✅ Utilisateur sauvegardé:", userToSet)
-        
-        // Recharger la page pour mettre à jour le contexte d'authentification
-        // ou rediriger directement vers la page appropriée
-        if (data.user.role === "ADMIN") {
-          window.location.href = "/admin/dashboard"
-        } else if (data.user.role === "TECHNICIEN") {
-          window.location.href = "/technicien/dashboard"
-        } else {
-          window.location.href = "/mes-signalements"
-        }
-      } else {
-        console.error("❌ Pas d'utilisateur dans la réponse")
-        // Si pas d'utilisateur dans la réponse, rediriger vers login
-        router.push("/login")
-      }
+        localStorage.setItem("user", JSON.stringify(data.user))
+        if (data.user.role === "ADMIN") window.location.href = "/admin/dashboard"
+        else if (data.user.role === "TECHNICIEN") window.location.href = "/technicien/dashboard"
+        else window.location.href = "/mes-signalements"
+      } else router.push("/login")
     } catch (err: any) {
-      console.error("Erreur lors de l'inscription:", err)
       setError(err.message || "Une erreur est survenue lors de l'inscription")
     } finally {
       setLoading(false)
@@ -142,7 +89,6 @@ export default function RegisterPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Main Content */}
       <main className="flex flex-1 items-center justify-center bg-secondary/30 px-4 py-12">
         <Card className="w-full max-w-2xl">
           <CardHeader className="space-y-1">
@@ -230,27 +176,44 @@ export default function RegisterPage() {
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
+                {/* Mot de passe */}
+                <div className="relative space-y-2">
                   <Label htmlFor="password">Mot de passe</Label>
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required
                   />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-9 text-muted-foreground"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
-                <div className="space-y-2">
+
+                {/* Confirmer mot de passe */}
+                <div className="relative space-y-2">
                   <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
                   <Input
                     id="confirmPassword"
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                     required
                   />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-9 text-muted-foreground"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -260,6 +223,7 @@ export default function RegisterPage() {
                 {loading ? "Création du compte..." : "Créer mon compte"}
               </Button>
             </form>
+
             <div className="mt-6 text-center text-sm">
               <span className="text-muted-foreground">Vous avez déjà un compte ? </span>
               <Link href="/login" className="font-medium text-primary hover:underline">

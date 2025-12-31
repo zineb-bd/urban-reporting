@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth-context"
 import { User, LogOut, LayoutDashboard, FileText, Settings } from "lucide-react"
 import Link from "next/link"
 import { NotificationBell } from "@/components/notification-bell"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function Header() {
   const { user, logout, isAuthenticated } = useAuth()
@@ -77,6 +78,7 @@ export function Header() {
           )}
 
           {isAuthenticated && <NotificationBell />}
+          <ThemeToggle />
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

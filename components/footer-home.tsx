@@ -18,7 +18,6 @@ export function FooterHome() {
 
           {/* Product Links */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-foreground">Produit</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <a href="#features" className="text-foreground/70 hover:text-[#00648E] transition-colors">
@@ -40,7 +39,6 @@ export function FooterHome() {
 
           {/* Company Links */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-foreground">Entreprise</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <a href="#stats" className="text-foreground/70 hover:text-[#00648E] transition-colors">
@@ -66,15 +64,15 @@ export function FooterHome() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2 text-foreground/70">
                 <Mail className="w-4 h-4" />
-                contact@citeengagement.fr
+                contact@citeconnect.fr
               </li>
               <li className="flex items-center gap-2 text-foreground/70">
                 <Phone className="w-4 h-4" />
-                +33 1 2345 6789
+                +212 6 0000000
               </li>
               <li className="flex items-start gap-2 text-foreground/70">
                 <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>Paris, France</span>
+                <span>Taroudant, Maroc</span>
               </li>
             </ul>
           </div>
@@ -83,15 +81,6 @@ export function FooterHome() {
         <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-foreground/60">
           <p>&copy; 2025 CitéConnect. Tous droits réservés.</p>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-[#00648E] transition-colors">
-              Confidentialité
-            </a>
-            <a href="#" className="hover:text-[#00648E] transition-colors">
-              Conditions
-            </a>
-            <a href="#" className="hover:text-[#00648E] transition-colors">
-              Cookies
-            </a>
           </div>
         </div>
       </div>

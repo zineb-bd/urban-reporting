@@ -42,13 +42,6 @@ export function Hero() {
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
-            <Button
-              variant="outline"
-              className="h-12 px-8 text-base border-[#00648E]/30 hover:bg-[#00648E]/10 text-foreground rounded-lg bg-transparent"
-              asChild
-            >
-              <Link href="/signalements">Voir la démo</Link>
-            </Button>
           </div>
 
           {/* Stats */}
