@@ -61,7 +61,8 @@ public class Notification {
         COMMENTAIRE_SUPPRIME,
         SIGNALEMENT_RESOLU,
         SIGNALEMENT_SUPPRIME,
-        COMPTE_CREE
+        COMPTE_CREE,
+        CONTACT
     }
 }
 

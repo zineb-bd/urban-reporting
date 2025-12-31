@@ -32,7 +32,7 @@ public class RegisterRequest {
     
     private String telephone;
     
-    private String adresse;
-    
     private String role = "CITOYEN";
+    
+    private String technicienId;
 }

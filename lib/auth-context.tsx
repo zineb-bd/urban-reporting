@@ -18,12 +18,14 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<User>
   logout: () => void
   isAuthenticated: boolean
+  isInitialized: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   const logout = useCallback(() => {
     setUser(null)
@@ -78,8 +80,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (savedUser && token) {
       // Charger les données depuis localStorage en premier (pour un affichage immédiat)
       setUser(JSON.parse(savedUser))
+      setIsInitialized(true)
       // Puis rafraîchir depuis le backend pour avoir les données à jour
       refreshUser()
+    } else {
+      setIsInitialized(true)
     }
   }, [refreshUser])
 
@@ -149,6 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         isAuthenticated: !!user,
+        isInitialized,
       }}
     >
       {children}

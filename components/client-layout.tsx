@@ -8,9 +8,10 @@ import { Footer } from "@/components/footer"
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isHomePage = pathname === "/"
+  const isContactPage = pathname === "/contact"
 
-  // Ne pas afficher le header/footer sur la page d'accueil car elle a son propre header/footer
-  if (isHomePage) {
+  // Ne pas afficher le header/footer sur la page d'accueil et contact car elles ont leur propre header/footer
+  if (isHomePage || isContactPage) {
     return <>{children}</>
   }
 

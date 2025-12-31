@@ -31,14 +31,20 @@ public class UserService {
         
         try {
             User.Role role = User.Role.valueOf(request.getRole().toUpperCase());
+            
+            // Validation : l'ID technicien est requis pour les techniciens
+            if (role == User.Role.TECHNICIEN && (request.getTechnicienId() == null || request.getTechnicienId().trim().isEmpty())) {
+                throw new BadRequestException("L'ID technicien est requis pour les techniciens");
+            }
+            
             User user = new User();
             user.setNom(request.getNom());
             user.setPrenom(request.getPrenom());
             user.setEmail(request.getEmail());
             user.setPassword(passwordEncoder.encode(request.getPassword()));
             user.setTelephone(request.getTelephone());
-            user.setAdresse(request.getAdresse());
             user.setRole(role);
+            user.setTechnicienId(request.getTechnicienId() != null ? request.getTechnicienId().trim() : null);
             
             return userRepository.save(user);
         } catch (IllegalArgumentException e) {

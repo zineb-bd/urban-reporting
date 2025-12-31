@@ -21,6 +21,9 @@ export function HeaderHome() {
         <div className="hidden sm:flex items-center gap-3">
           <ThemeToggle />
           <Button variant="ghost" className="text-foreground hover:text-[#00648E]" asChild>
+            <Link href="/contact">Contactez-nous</Link>
+          </Button>
+          <Button variant="ghost" className="text-foreground hover:text-[#00648E]" asChild>
             <Link href="/login">Connexion</Link>
           </Button>
           <Button className="bg-[#00648E] hover:bg-[#005a7a] text-white" asChild>
@@ -36,9 +39,17 @@ export function HeaderHome() {
 
       {isOpen && (
         <div className="md:hidden border-t border-border p-4 space-y-3 bg-background">
-          <div className="flex gap-2 pt-3">
-            <ThemeToggle />
-            <Button className="flex-1 bg-[#00648E] hover:bg-[#005a7a] text-white" asChild>
+          <div className="flex flex-col gap-2 pt-3">
+            <div className="flex gap-2">
+              <ThemeToggle />
+            </div>
+            <Button variant="ghost" className="w-full" asChild>
+              <Link href="/contact">Contactez-nous</Link>
+            </Button>
+            <Button variant="ghost" className="w-full" asChild>
+              <Link href="/login">Connexion</Link>
+            </Button>
+            <Button className="w-full bg-[#00648E] hover:bg-[#005a7a] text-white" asChild>
               <Link href="/inscription">Signaler maintenant</Link>
             </Button>
           </div>
