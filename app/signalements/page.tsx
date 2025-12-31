@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Search, Filter, Clock, CheckCircle2, AlertCircle, Loader2, FileText, Trash2 } from "lucide-react"
+import { Search, Filter, Clock, CheckCircle2, AlertCircle, Loader2, FileText, Trash2, MapPin } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
@@ -58,6 +58,7 @@ export default function SignalementsPage() {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("TOUS")
   const [categoryFilter, setCategoryFilter] = useState("TOUS")
+  const [cityFilter, setCityFilter] = useState("TOUS")
   const [searchQuery, setSearchQuery] = useState("") // Pour le debounce
   const [isMounted, setIsMounted] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
@@ -160,8 +161,37 @@ export default function SignalementsPage() {
     fetchSignalements()
   }, [isAuthenticated, router, statusFilter, categoryFilter, searchQuery])
 
-  // Utiliser directement les signalements du backend (déjà filtrés)
-  const filteredSignalements = signalements
+  // Fonction pour extraire la ville de l'adresse
+  const extractCity = (adresse: string | null | undefined): string | null => {
+    if (!adresse || !adresse.trim()) return null
+    // Format attendu: "Rue, Ville, Pays" ou "Ville, Pays"
+    const parts = adresse.split(",").map(p => p.trim()).filter(p => p.length > 0)
+    if (parts.length >= 2) {
+      // Prendre l'avant-dernière partie (la ville, avant le pays)
+      return parts[parts.length - 2]
+    } else if (parts.length === 1) {
+      // Si une seule partie, c'est peut-être juste la ville
+      return parts[0]
+    }
+    return null
+  }
+
+  // Extraire les villes uniques des signalements
+  const availableCities = Array.from(
+    new Set(
+      signalements
+        .map(s => extractCity(s.adresse))
+        .filter((city): city is string => city !== null && city !== "")
+        .sort()
+    )
+  )
+
+  // Filtrer les signalements par ville
+  const filteredSignalements = signalements.filter((signalement) => {
+    if (cityFilter === "TOUS") return true
+    const signalementCity = extractCity(signalement.adresse)
+    return signalementCity === cityFilter
+  })
 
   const handleDelete = async (signalementId: number) => {
     try {
@@ -226,7 +256,7 @@ export default function SignalementsPage() {
         {/* Filters */}
         <Card className="mb-8">
           <CardContent className="pt-6">
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -274,6 +304,32 @@ export default function SignalementsPage() {
                 <div className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground flex items-center">
                   <Filter className="mr-2 h-4 w-4" />
                   Filtrer par catégorie
+                </div>
+              )}
+              {isMounted && availableCities.length > 0 ? (
+                <Select value={cityFilter} onValueChange={setCityFilter}>
+                  <SelectTrigger>
+                    <Filter className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Filtrer par ville" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TOUS">Toutes les villes</SelectItem>
+                    {availableCities.map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : isMounted ? (
+                <div className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground flex items-center">
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filtrer par ville
+                </div>
+              ) : (
+                <div className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground flex items-center">
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filtrer par ville
                 </div>
               )}
             </div>

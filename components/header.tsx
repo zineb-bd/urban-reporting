@@ -41,14 +41,22 @@ export function Header() {
             </>
           )}
 
-          {/* Citoyen: Voir ses signalements */}
+          {/* Citoyen: Voir ses signalements et tous les signalements */}
           {user?.role === "CITOYEN" && (
-            <Link
-              href="/mes-signalements"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground"
-            >
-              Mes signalements
-            </Link>
+            <>
+              <Link
+                href="/signalements"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                Tous les signalements
+              </Link>
+              <Link
+                href="/mes-signalements"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                Mes signalements
+              </Link>
+            </>
           )}
 
           {/* Technicien: Consulter assignations + Changer statuts */}
