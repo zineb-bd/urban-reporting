@@ -63,4 +63,29 @@ public class UserService {
     public List<User> findByRole(User.Role role) {
         return userRepository.findByRole(role);
     }
+    
+    public List<User> findAll() {
+        return userRepository.findAll();
+    }
+    
+    @Transactional
+    public void deleteUser(Long id) {
+        User user = findById(id);
+        // Ne pas permettre la suppression d'un admin
+        if (user.getRole() == User.Role.ADMIN) {
+            throw new BadRequestException("Impossible de supprimer un administrateur");
+        }
+        userRepository.deleteById(id);
+    }
+    
+    @Transactional
+    public User toggleUserStatus(Long id) {
+        User user = findById(id);
+        // Ne pas permettre la désactivation d'un admin
+        if (user.getRole() == User.Role.ADMIN) {
+            throw new BadRequestException("Impossible de désactiver un administrateur");
+        }
+        user.setEnabled(!user.getEnabled());
+        return userRepository.save(user);
+    }
 }

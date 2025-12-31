@@ -41,6 +41,51 @@ public class UserController {
         List<User> techniciens = userService.findTechniciens();
         return ResponseEntity.ok(techniciens);
     }
+    
+    @GetMapping("/all")
+    public ResponseEntity<List<User>> getAllUsers() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        User user = userService.findByEmail(email);
+        
+        // Seuls les admins peuvent voir tous les utilisateurs
+        if (user.getRole() != User.Role.ADMIN) {
+            throw new ForbiddenException("Seuls les administrateurs peuvent accéder à cette liste");
+        }
+        
+        List<User> users = userService.findAll();
+        return ResponseEntity.ok(users);
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        User currentUser = userService.findByEmail(email);
+        
+        // Seuls les admins peuvent supprimer des utilisateurs
+        if (currentUser.getRole() != User.Role.ADMIN) {
+            throw new ForbiddenException("Seuls les administrateurs peuvent supprimer des utilisateurs");
+        }
+        
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+    
+    @PatchMapping("/{id}/toggle-status")
+    public ResponseEntity<User> toggleUserStatus(@PathVariable Long id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        User currentUser = userService.findByEmail(email);
+        
+        // Seuls les admins peuvent activer/désactiver des comptes
+        if (currentUser.getRole() != User.Role.ADMIN) {
+            throw new ForbiddenException("Seuls les administrateurs peuvent modifier le statut des utilisateurs");
+        }
+        
+        User updatedUser = userService.toggleUserStatus(id);
+        return ResponseEntity.ok(updatedUser);
+    }
 }
 
 

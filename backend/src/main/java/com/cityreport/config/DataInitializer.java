@@ -36,6 +36,7 @@ public class DataInitializer implements CommandLineRunner {
             admin.setEmail("admin@mail.com");
             admin.setPassword(passwordEncoder.encode("admin123"));
             admin.setRole(User.Role.ADMIN);
+            admin.setEnabled(true);
             userRepository.save(admin);
             
             // Technicien
@@ -45,6 +46,7 @@ public class DataInitializer implements CommandLineRunner {
             technicien.setEmail("technicien@mail.com");
             technicien.setPassword(passwordEncoder.encode("technicien123"));
             technicien.setRole(User.Role.TECHNICIEN);
+            technicien.setEnabled(true);
             userRepository.save(technicien);
             
             // Citoyen
@@ -54,6 +56,7 @@ public class DataInitializer implements CommandLineRunner {
             citoyen.setEmail("citoyen@mail.com");
             citoyen.setPassword(passwordEncoder.encode("citoyen123"));
             citoyen.setRole(User.Role.CITOYEN);
+            citoyen.setEnabled(true);
             userRepository.save(citoyen);
             
             System.out.println("Utilisateurs de démonstration créés avec succès!");
@@ -70,6 +73,7 @@ public class DataInitializer implements CommandLineRunner {
             zineb.setRole(User.Role.CITOYEN);
             zineb.setTelephone("0612345678");
             zineb.setAdresse("Rabat, Maroc");
+            zineb.setEnabled(true);
             zineb = userRepository.save(zineb);
             System.out.println("Utilisateur Zineb créé avec succès!");
         }
@@ -85,6 +89,7 @@ public class DataInitializer implements CommandLineRunner {
             hiba.setRole(User.Role.TECHNICIEN);
             hiba.setTelephone("0612345679");
             hiba.setAdresse("Rabat, Maroc");
+            hiba.setEnabled(true);
             hiba = userRepository.save(hiba);
             System.out.println("Technicien Hiba créé avec succès!");
         }
