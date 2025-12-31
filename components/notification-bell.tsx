@@ -240,7 +240,7 @@ export function NotificationBell() {
             notifications.map((notification) => (
               <DropdownMenuItem
                 key={notification.id}
-                className={`flex flex-col items-start p-3 cursor-pointer ${
+                className={`notification-item flex flex-col items-start p-3 cursor-pointer text-foreground ${
                   !notification.lu ? "bg-muted/50" : ""
                 }`}
                 onClick={() => {
@@ -254,14 +254,14 @@ export function NotificationBell() {
               >
                 <div className="flex items-start justify-between w-full gap-2">
                   <div className="flex-1">
-                    <p className={`text-sm font-medium ${!notification.lu ? "font-semibold" : ""}`}>
+                    <p className={`notification-title text-sm font-medium text-foreground ${!notification.lu ? "font-semibold" : ""}`}>
                       {notification.titre}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">{notification.message}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{formatDate(notification.dateCreation)}</p>
+                    <p className="notification-message text-xs text-foreground dark:text-foreground mt-1">{notification.message}</p>
+                    <p className="notification-date text-xs text-muted-foreground mt-1">{formatDate(notification.dateCreation)}</p>
                   </div>
                   {!notification.lu && (
-                    <div className="h-2 w-2 rounded-full bg-primary mt-1 flex-shrink-0" />
+                    <div className="notification-dot h-2 w-2 rounded-full bg-primary mt-1 flex-shrink-0" />
                   )}
                 </div>
               </DropdownMenuItem>
@@ -270,7 +270,7 @@ export function NotificationBell() {
         </ScrollArea>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/notifications" className="cursor-pointer w-full">
+          <Link href="/notifications" className="cursor-pointer w-full text-foreground">
             Voir toutes les notifications
           </Link>
         </DropdownMenuItem>

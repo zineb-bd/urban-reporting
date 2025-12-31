@@ -1,37 +1,69 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
-import { Star } from "lucide-react"
+import { Star, Loader2 } from "lucide-react"
+
+interface Avis {
+  id: number
+  note: number
+  commentaire: string
+  dateCreation: string
+  user: {
+    id: number
+    prenom: string
+    nom: string
+    email: string
+  }
+}
+
+const colors = [
+  "from-blue-500 to-blue-600",
+  "from-purple-500 to-purple-600",
+  "from-pink-500 to-pink-600",
+  "from-green-500 to-green-600",
+  "from-orange-500 to-orange-600",
+]
 
 export function Testimonials() {
-  const testimonials = [
-    {
-      name: "Marie Dupont",
-      role: "Résidente à Paris",
-      avatar: "MD",
-      rating: 5,
-      quote:
-        "Enfin une plateforme efficace! J'ai signalé un nid de poule devant chez moi et il a été réparé en 2 semaines.",
-      color: "from-blue-500 to-blue-600",
-    },
-    {
-      name: "Jean Martin",
-      role: "Citoyen à Lyon",
-      avatar: "JM",
-      rating: 5,
-      quote: "Super transparent. On voit exactement le statut de nos signalements. C'est du vrai engagement citoyen!",
-      color: "from-purple-500 to-purple-600",
-    },
-    {
-      name: "Sophie Bernard",
-      role: "Résidente à Toulouse",
-      avatar: "SB",
-      rating: 5,
-      quote:
-        "L'app est tellement facile à utiliser. J'ai signalé un éclairage cassé et j'ai reçu des updates régulières.",
-      color: "from-pink-500 to-pink-600",
-    },
-  ]
+  const [testimonials, setTestimonials] = useState<Avis[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchAvis = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+        const response = await fetch(`${apiUrl}/api/avis/latest?limit=3`)
+        
+        console.log("Response status:", response.status)
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log("Avis récupérés:", data)
+          setTestimonials(Array.isArray(data) ? data : [])
+        } else {
+          const errorText = await response.text()
+          console.error("Erreur API:", response.status, errorText)
+          setTestimonials([])
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération des avis:", error)
+        setTestimonials([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAvis()
+  }, [])
+
+  const getInitials = (prenom: string, nom: string) => {
+    return `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase()
+  }
+
+  const getColor = (index: number) => {
+    return colors[index % colors.length]
+  }
 
   return (
     <section className="py-12 md:py-16 px-4 relative">
@@ -45,39 +77,62 @@ export function Testimonials() {
           <p className="text-lg text-foreground/70">Des milliers de citoyens satisfaits font déjà la différence</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {testimonials.map((testimonial, index) => (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : testimonials.length > 0 ? (
+          <div className="grid md:grid-cols-3 gap-6">
+            {testimonials.map((testimonial, index) => (
             <Card
-              key={index}
+              key={testimonial.id}
               className="p-8 border border-border/50 bg-card/50 backdrop-blur hover:border-[#00648E]/50 transition-all duration-300"
             >
               <div className="space-y-6">
                 {/* Rating */}
                 <div className="flex gap-1">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-yellow-500 text-yellow-500" />
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-5 h-5 ${
+                        i < testimonial.note
+                          ? "fill-yellow-500 text-yellow-500"
+                          : "fill-gray-300 text-gray-300 dark:fill-gray-600 dark:text-gray-600"
+                      }`}
+                    />
                   ))}
                 </div>
 
                 {/* Quote */}
-                <p className="text-base text-foreground/90 leading-relaxed italic">"{testimonial.quote}"</p>
+                <p className="text-base text-foreground/90 leading-relaxed italic">
+                  "{testimonial.commentaire}"
+                </p>
 
                 {/* Author */}
                 <div className="flex items-center gap-4">
                   <div
-                    className={`w-12 h-12 rounded-full bg-gradient-to-br ${testimonial.color} flex items-center justify-center`}
+                    className={`w-12 h-12 rounded-full bg-gradient-to-br ${getColor(index)} flex items-center justify-center`}
                   >
-                    <span className="text-white font-bold text-sm">{testimonial.avatar}</span>
+                    <span className="text-white font-bold text-sm">
+                      {getInitials(testimonial.user.prenom, testimonial.user.nom)}
+                    </span>
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground">{testimonial.name}</p>
-                    <p className="text-sm text-foreground/60">{testimonial.role}</p>
+                    <p className="font-semibold text-foreground">
+                      {testimonial.user.prenom} {testimonial.user.nom}
+                    </p>
+                    <p className="text-sm text-foreground/60">Citoyen</p>
                   </div>
                 </div>
               </div>
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Aucun avis pour le moment. Soyez le premier à partager votre expérience !</p>
+          </div>
+        )}
       </div>
     </section>
   )

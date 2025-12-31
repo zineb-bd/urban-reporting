@@ -57,6 +57,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/signalements/public/**").permitAll()
+                .requestMatchers("/api/avis/latest").permitAll()
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
