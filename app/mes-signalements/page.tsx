@@ -243,11 +243,24 @@ export default function MesSignalementsPage() {
               return (
                 <Link key={signalement.id} href={`/signalements/${signalement.id}`}>
                   <Card className="h-full transition-all hover:shadow-lg">
-                    <img
-                      src={signalement.photoUrl || "/placeholder.svg"}
-                      alt={signalement.titre}
-                      className="h-48 w-full rounded-t-lg object-cover"
-                    />
+                    <div className="relative h-48 w-full overflow-hidden rounded-t-lg bg-muted">
+                      {signalement.photoUrl ? (
+                        <img
+                          src={signalement.photoUrl}
+                          alt={signalement.titre}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.src = "/placeholder.svg"
+                            target.onerror = null
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-muted">
+                          <FileText className="h-12 w-12 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
                     <CardHeader className="pb-3">
                       <div className="mb-2 flex items-start justify-between gap-2">
                         <Badge variant={signalement.priorite === "HAUTE" ? "destructive" : "default"}>

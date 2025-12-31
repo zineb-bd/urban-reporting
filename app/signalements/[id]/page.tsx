@@ -6,14 +6,26 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MapPin, Calendar, User, AlertCircle, Clock, CheckCircle2, MessageSquare, Loader2 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { MapPin, Calendar, User, AlertCircle, Clock, CheckCircle2, MessageSquare, Loader2, Camera, Upload, X } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect, use, useMemo } from "react"
 import dynamic from "next/dynamic"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 // Dynamic import for Leaflet map
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false })
@@ -86,6 +98,10 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
   const [isMapReady, setIsMapReady] = useState(false)
   const [commentaires, setCommentaires] = useState<Commentaire[]>([])
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
+  const [isChangingPhoto, setIsChangingPhoto] = useState(false)
+  const [showPhotoUpload, setShowPhotoUpload] = useState(false)
+  const [newPhotoPreview, setNewPhotoPreview] = useState<string | null>(null)
+  const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null)
 
   // Icône personnalisée de pin rouge pour le marqueur
   const customIcon = useMemo(() => {
@@ -345,6 +361,95 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
     }
   }
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        setError("L'image est trop grande (max 10MB)")
+        return
+      }
+      if (!file.type.startsWith("image/")) {
+        setError("Le fichier doit être une image")
+        return
+      }
+      setNewPhotoFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setNewPhotoPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handlePhotoUpload = async () => {
+    if (!newPhotoFile || !newPhotoPreview) {
+      setError("Veuillez sélectionner une image")
+      return
+    }
+
+    try {
+      setIsChangingPhoto(true)
+      setError(null)
+
+      const token = localStorage.getItem("token")
+      if (!token) {
+        throw new Error("Token d'authentification manquant")
+      }
+
+      // Pour l'instant, on utilise la preview en base64
+      // Dans un vrai projet, vous devriez uploader l'image vers un service de stockage
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+      const response = await fetch(`${apiUrl}/api/signalements/${id}/photo`, {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          photoUrl: newPhotoPreview,
+        }),
+      })
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem("token")
+          localStorage.removeItem("user")
+          router.push("/login")
+          return
+        }
+
+        const errorText = await response.text()
+        let errorMessage = `Erreur ${response.status}: ${response.statusText}`
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.message || errorData.error || errorMessage
+        } catch {
+          errorMessage = errorText || errorMessage
+        }
+        throw new Error(errorMessage)
+      }
+
+      const updatedSignalement = await response.json()
+      setSignalement(updatedSignalement)
+      setShowPhotoUpload(false)
+      setNewPhotoPreview(null)
+      setNewPhotoFile(null)
+      
+      toast.success("Photo mise à jour avec succès!")
+    } catch (err: any) {
+      console.error("Erreur lors de la mise à jour de la photo:", err)
+      setError(err.message || "Une erreur est survenue lors de la mise à jour de la photo")
+    } finally {
+      setIsChangingPhoto(false)
+    }
+  }
+
+  // Vérifier si l'utilisateur peut modifier la photo
+  const canEditPhoto = signalement && currentUser && (
+    signalement.user.id === currentUser.id || 
+    currentUser.role === "ADMIN"
+  )
+
   if (!isAuthenticated) {
     return null
   }
@@ -429,17 +534,177 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {signalement.photoUrl && (
-                  <div className="flex justify-center">
-                    <div className="max-w-2xl w-full border border-border rounded-lg overflow-hidden bg-muted/50 p-4">
-                      <img
-                        src={signalement.photoUrl}
-                        alt={signalement.titre}
-                        className="w-full h-auto rounded-md object-contain max-h-[500px] mx-auto"
-                      />
+                <div className="relative">
+                  {signalement.photoUrl ? (
+                    <div className="flex justify-center">
+                      <div className="max-w-2xl w-full border border-border rounded-lg overflow-hidden bg-muted/50 p-4 relative group">
+                        <img
+                          src={signalement.photoUrl}
+                          alt={signalement.titre}
+                          className="w-full h-auto rounded-md object-contain max-h-[500px] mx-auto"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.src = "/placeholder.svg"
+                            target.onerror = null
+                          }}
+                        />
+                        {canEditPhoto && (
+                          <Dialog open={showPhotoUpload} onOpenChange={setShowPhotoUpload}>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Camera className="h-4 w-4 mr-2" />
+                                Changer la photo
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Changer la photo du signalement</DialogTitle>
+                                <DialogDescription>
+                                  Sélectionnez une nouvelle photo pour ce signalement
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="photo">Nouvelle photo</Label>
+                                  <Input
+                                    id="photo"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handlePhotoChange}
+                                    className="cursor-pointer"
+                                  />
+                                  <p className="text-xs text-muted-foreground">
+                                    PNG, JPG jusqu'à 10MB
+                                  </p>
+                                </div>
+                                {newPhotoPreview && (
+                                  <div className="space-y-2">
+                                    <Label>Aperçu</Label>
+                                    <div className="border rounded-lg overflow-hidden">
+                                      <img
+                                        src={newPhotoPreview}
+                                        alt="Aperçu"
+                                        className="w-full h-64 object-contain"
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <DialogFooter>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    setShowPhotoUpload(false)
+                                    setNewPhotoPreview(null)
+                                    setNewPhotoFile(null)
+                                  }}
+                                >
+                                  Annuler
+                                </Button>
+                                <Button
+                                  onClick={handlePhotoUpload}
+                                  disabled={!newPhotoFile || isChangingPhoto}
+                                >
+                                  {isChangingPhoto ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Mise à jour...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Upload className="mr-2 h-4 w-4" />
+                                      Mettre à jour
+                                    </>
+                                  )}
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    canEditPhoto && (
+                      <div className="flex justify-center">
+                        <Dialog open={showPhotoUpload} onOpenChange={setShowPhotoUpload}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" className="gap-2">
+                              <Camera className="h-4 w-4" />
+                              Ajouter une photo
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Ajouter une photo au signalement</DialogTitle>
+                              <DialogDescription>
+                                Sélectionnez une photo pour illustrer ce signalement
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="photo">Photo</Label>
+                                <Input
+                                  id="photo"
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handlePhotoChange}
+                                  className="cursor-pointer"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                  PNG, JPG jusqu'à 10MB
+                                </p>
+                              </div>
+                              {newPhotoPreview && (
+                                <div className="space-y-2">
+                                  <Label>Aperçu</Label>
+                                  <div className="border rounded-lg overflow-hidden">
+                                    <img
+                                      src={newPhotoPreview}
+                                      alt="Aperçu"
+                                      className="w-full h-64 object-contain"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <DialogFooter>
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setShowPhotoUpload(false)
+                                  setNewPhotoPreview(null)
+                                  setNewPhotoFile(null)
+                                }}
+                              >
+                                Annuler
+                              </Button>
+                              <Button
+                                onClick={handlePhotoUpload}
+                                disabled={!newPhotoFile || isChangingPhoto}
+                              >
+                                {isChangingPhoto ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Mise à jour...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    Ajouter
+                                  </>
+                                )}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    )
+                  )}
+                </div>
                 <div>
                   <h3 className="mb-2 font-semibold">Description</h3>
                   <p className="text-muted-foreground">{signalement.description}</p>

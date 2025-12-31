@@ -42,39 +42,62 @@ export function NotificationBell() {
       try {
         setIsLoading(true)
         const token = localStorage.getItem("token")
-        if (!token) return
+        if (!token) {
+          setIsLoading(false)
+          return
+        }
 
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 
-        // Récupérer les notifications
-        const response = await fetch(`${apiUrl}/api/notifications`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        })
+        try {
+          // Récupérer les notifications
+          const response = await fetch(`${apiUrl}/api/notifications`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          })
 
-        if (response.ok) {
-          const data = await response.json()
-          setNotifications(data || [])
+          if (response.ok) {
+            const data = await response.json()
+            setNotifications(data || [])
+          } else if (response.status === 404) {
+            // L'endpoint n'existe pas encore, on ignore silencieusement
+            setNotifications([])
+          }
+        } catch (fetchError) {
+          // Erreur de réseau ou endpoint non disponible
+          console.warn("Endpoint de notifications non disponible:", fetchError)
+          setNotifications([])
         }
 
-        // Récupérer le nombre de notifications non lues
-        const countResponse = await fetch(`${apiUrl}/api/notifications/unread-count`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        })
+        try {
+          // Récupérer le nombre de notifications non lues
+          const countResponse = await fetch(`${apiUrl}/api/notifications/unread-count`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          })
 
-        if (countResponse.ok) {
-          const countData = await countResponse.json()
-          setUnreadCount(countData.count || 0)
+          if (countResponse.ok) {
+            const countData = await countResponse.json()
+            setUnreadCount(countData.count || 0)
+          } else if (countResponse.status === 404) {
+            // L'endpoint n'existe pas encore
+            setUnreadCount(0)
+          }
+        } catch (fetchError) {
+          // Erreur de réseau ou endpoint non disponible
+          console.warn("Endpoint de comptage de notifications non disponible:", fetchError)
+          setUnreadCount(0)
         }
       } catch (error) {
         console.error("Erreur lors de la récupération des notifications:", error)
+        setNotifications([])
+        setUnreadCount(0)
       } finally {
         setIsLoading(false)
       }
@@ -93,15 +116,27 @@ export function NotificationBell() {
       if (!token) return
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
-      const response = await fetch(`${apiUrl}/api/notifications/${id}/read`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
+      
+      try {
+        const response = await fetch(`${apiUrl}/api/notifications/${id}/read`, {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
 
-      if (response.ok) {
+        if (response.ok) {
+          setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, lu: true } : n)))
+          setUnreadCount((prev) => Math.max(0, prev - 1))
+        } else if (response.status === 404) {
+          // Endpoint non disponible, on met à jour localement quand même
+          setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, lu: true } : n)))
+          setUnreadCount((prev) => Math.max(0, prev - 1))
+        }
+      } catch (fetchError) {
+        // Erreur de réseau, on met à jour localement quand même
+        console.warn("Endpoint de marquage de notification non disponible:", fetchError)
         setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, lu: true } : n)))
         setUnreadCount((prev) => Math.max(0, prev - 1))
       }
@@ -116,15 +151,27 @@ export function NotificationBell() {
       if (!token) return
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
-      const response = await fetch(`${apiUrl}/api/notifications/read-all`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
+      
+      try {
+        const response = await fetch(`${apiUrl}/api/notifications/read-all`, {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
 
-      if (response.ok) {
+        if (response.ok) {
+          setNotifications((prev) => prev.map((n) => ({ ...n, lu: true })))
+          setUnreadCount(0)
+        } else if (response.status === 404) {
+          // Endpoint non disponible, on met à jour localement quand même
+          setNotifications((prev) => prev.map((n) => ({ ...n, lu: true })))
+          setUnreadCount(0)
+        }
+      } catch (fetchError) {
+        // Erreur de réseau, on met à jour localement quand même
+        console.warn("Endpoint de marquage de toutes les notifications non disponible:", fetchError)
         setNotifications((prev) => prev.map((n) => ({ ...n, lu: true })))
         setUnreadCount(0)
       }

@@ -227,4 +227,17 @@ public class SignalementService {
         
         return saved;
     }
+    
+    @Transactional
+    public Signalement updatePhoto(Long id, String photoUrl, User user) {
+        Signalement signalement = findById(id);
+        
+        // Vérifier que l'utilisateur est le propriétaire ou un admin
+        if (!signalement.getUser().getId().equals(user.getId()) && user.getRole() != User.Role.ADMIN) {
+            throw new ForbiddenException("Vous n'avez pas l'autorisation de modifier la photo de ce signalement");
+        }
+        
+        signalement.setPhotoUrl(photoUrl);
+        return signalementRepository.save(signalement);
+    }
 }

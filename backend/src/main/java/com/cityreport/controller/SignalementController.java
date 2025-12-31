@@ -223,4 +223,21 @@ public class SignalementController {
         commentaireService.delete(commentaireId, user);
         return ResponseEntity.noContent().build();
     }
+    
+    @PatchMapping("/{id}/photo")
+    public ResponseEntity<Signalement> updatePhoto(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, String> request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        User user = userService.findByEmail(email);
+        
+        String photoUrl = request.get("photoUrl");
+        if (photoUrl == null || photoUrl.trim().isEmpty()) {
+            throw new BadRequestException("L'URL de la photo est requise");
+        }
+        
+        Signalement signalement = signalementService.updatePhoto(id, photoUrl, user);
+        return ResponseEntity.ok(signalement);
+    }
 }

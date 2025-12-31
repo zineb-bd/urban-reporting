@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Search, Filter, Clock, CheckCircle2, AlertCircle, Loader2 } from "lucide-react"
+import { Search, Filter, Clock, CheckCircle2, AlertCircle, Loader2, FileText } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
@@ -266,11 +266,24 @@ export default function SignalementsPage() {
             return (
               <Link key={signalement.id} href={`/signalements/${signalement.id}`}>
                 <Card className="h-full transition-all hover:shadow-lg">
-                  <img
-                    src={signalement.photoUrl || "/placeholder.svg"}
-                    alt={signalement.titre}
-                    className="h-48 w-full rounded-t-lg object-cover"
-                  />
+                  <div className="relative h-48 w-full overflow-hidden rounded-t-lg bg-muted">
+                    {signalement.photoUrl ? (
+                      <img
+                        src={signalement.photoUrl}
+                        alt={signalement.titre}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.src = "/placeholder.svg"
+                          target.onerror = null
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-muted">
+                        <FileText className="h-12 w-12 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
                   <CardHeader className="pb-3">
                     <div className="mb-2 flex items-start justify-between gap-2">
                       <Badge variant={priorityInfo.variant}>{priorityInfo.label}</Badge>
