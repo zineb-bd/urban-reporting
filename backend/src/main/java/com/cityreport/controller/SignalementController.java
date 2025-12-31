@@ -164,12 +164,21 @@ public class SignalementController {
         String email = auth.getName();
         User user = userService.findByEmail(email);
         
-        // Seuls les admins et techniciens peuvent modifier le statut
-        if (user.getRole() != User.Role.ADMIN && user.getRole() != User.Role.TECHNICIEN) {
-            throw new ForbiddenException("Vous n'avez pas l'autorisation de modifier le statut d'un signalement");
+        // Seuls les techniciens assignés peuvent modifier le statut
+        if (user.getRole() != User.Role.TECHNICIEN) {
+            throw new ForbiddenException("Seuls les techniciens peuvent modifier le statut d'un signalement");
         }
         
-        Signalement signalement = signalementService.updateStatut(id, statut);
+        Signalement signalement = signalementService.findById(id);
+        // Vérifier que le technicien est assigné et a accepté la mission
+        if (signalement.getTechnicien() == null || !signalement.getTechnicien().getId().equals(user.getId())) {
+            throw new ForbiddenException("Vous n'êtes pas assigné à ce signalement");
+        }
+        if (signalement.getAccepteAssignation() == null || !signalement.getAccepteAssignation()) {
+            throw new ForbiddenException("Vous devez accepter la mission avant de modifier le statut");
+        }
+        
+        signalement = signalementService.updateStatut(id, statut);
         
         // Si le statut est RESOLU et que des données de résolution sont fournies, les sauvegarder
         if (statut == Signalement.Statut.RESOLU && requestBody != null) {

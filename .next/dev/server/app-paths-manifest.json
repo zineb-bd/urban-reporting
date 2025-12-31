@@ -1,0 +1,15 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/admin/rapports/page": "app/admin/rapports/page.js",
+  "/avis/page": "app/avis/page.js",
+  "/inscription/page": "app/inscription/page.js",
+  "/login/page": "app/login/page.js",
+  "/mes-signalements/page": "app/mes-signalements/page.js",
+  "/notifications/page": "app/notifications/page.js",
+  "/page": "app/page.js",
+  "/signalements/[id]/page": "app/signalements/[id]/page.js",
+  "/signalements/nouveau/page": "app/signalements/nouveau/page.js",
+  "/signalements/page": "app/signalements/page.js",
+  "/technicien/dashboard/page": "app/technicien/dashboard/page.js"
+}

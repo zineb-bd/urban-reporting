@@ -634,14 +634,27 @@ export default function TechnicienDashboard() {
               const StatusIcon = statusInfo.icon
 
               return (
-                <Card key={signalement.id} className="h-full flex flex-col transition-all hover:shadow-lg">
+                <Card key={signalement.id} className="h-full transition-all hover:shadow-lg">
                   <Link href={`/signalements/${signalement.id}`}>
-                    <img
-                      src={signalement.photoUrl || "/placeholder.svg"}
-                      alt={signalement.titre}
-                      className="h-48 w-full rounded-t-lg object-cover"
-                    />
-                    <CardHeader className="pb-3">
+                    <div className="relative h-48 w-full overflow-hidden rounded-t-lg bg-muted">
+                      {signalement.photoUrl ? (
+                        <img
+                          src={signalement.photoUrl}
+                          alt={signalement.titre}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.src = "/placeholder.svg"
+                            target.onerror = null
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-muted">
+                          <FileText className="h-12 w-12 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <CardHeader className="pt-6 pb-3">
                       <div className="mb-2 flex items-start justify-between gap-2">
                         <Badge variant={signalement.priorite === "HAUTE" ? "destructive" : "default"}>
                           {signalement.priorite}
@@ -656,14 +669,14 @@ export default function TechnicienDashboard() {
                       <CardTitle className="line-clamp-2">{signalement.titre}</CardTitle>
                       <CardDescription className="line-clamp-2">{signalement.description}</CardDescription>
                     </CardHeader>
-                    <CardContent className="pt-0 pb-4">
+                    <CardContent>
                       <div className="flex items-center justify-between text-sm text-muted-foreground">
                         <span>{signalement.categorie}</span>
                         <span>{formatDate(signalement.dateCreation)}</span>
                       </div>
                     </CardContent>
                   </Link>
-                  <CardContent className="border-t pt-4 space-y-4">
+                  <CardContent className="border-t pt-6 space-y-4">
                     {/* Boutons d'acceptation/refus pour les missions en attente */}
                     {signalement.accepteAssignation === null && (
                       <div className="space-y-2">

@@ -527,10 +527,9 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
     currentUser.role === "ADMIN"
   )
 
-  // Vérifier si l'utilisateur peut changer le statut
+  // Vérifier si l'utilisateur peut changer le statut (seulement les techniciens assignés)
   const canChangeStatus = currentUser && (
-    currentUser.role === "ADMIN" || 
-    (currentUser.role === "TECHNICIEN" && signalement?.technicien?.id === currentUser.id && signalement?.accepteAssignation === true)
+    currentUser.role === "TECHNICIEN" && signalement?.technicien?.id === currentUser.id && signalement?.accepteAssignation === true
   )
 
   const handleStatusChangeClick = (newStatus: string) => {
@@ -900,7 +899,7 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
             {/* Header Card */}
             <Card>
               <CardHeader>
-                <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+                <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
                   <div className="flex flex-wrap gap-2">
                     <Badge variant={priorityInfo.variant}>{priorityInfo.label}</Badge>
                     <div
@@ -912,8 +911,8 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
                   </div>
                   <span className="text-sm text-muted-foreground">#{signalement.id}</span>
                 </div>
-                <CardTitle className="text-2xl mb-3 leading-tight">{signalement.titre}</CardTitle>
-                <CardDescription className="flex flex-wrap items-center gap-4 mt-2">
+                <CardTitle className="text-2xl mb-2 leading-tight">{signalement.titre}</CardTitle>
+                <CardDescription className="flex flex-wrap items-center gap-4 mt-1">
                   <span className="flex items-center gap-1">
                     <User className="h-4 w-4" />
                     {signalement.user.prenom} {signalement.user.nom}
@@ -931,7 +930,7 @@ export default function SignalementDetailPage({ params }: { params: Promise<{ id
             </Card>
 
             {/* Photo principale */}
-            <Card>
+            <Card className="mt-16">
               <CardHeader>
                 <CardTitle className="text-lg">Photo du signalement</CardTitle>
               </CardHeader>
