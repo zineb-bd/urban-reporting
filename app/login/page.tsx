@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Info, Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff } from "lucide-react"
 
 import { useAuth } from "@/lib/auth-context"
 
@@ -61,19 +60,6 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent>
-            <Alert className="mb-4">
-              <Info className="h-4 w-4" />
-              <AlertDescription className="text-xs">
-                <strong>Comptes de démo :</strong>
-                <br />
-                Citoyen : citoyen@mail.com / citoyen123
-                <br />
-                Technicien : technicien@mail.com / technicien123
-                <br />
-                Admin : admin@mail.com / admin123
-              </AlertDescription>
-            </Alert>
-
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email */}
               <div className="space-y-2">

@@ -33,22 +33,23 @@ export function Testimonials() {
     const fetchAvis = async () => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
-        const response = await fetch(`${apiUrl}/api/avis/latest?limit=3`)
+        const url = `${apiUrl}/api/avis/latest?limit=3`
+        console.log("🔍 Récupération des avis depuis:", url)
+        
+        const response = await fetch(url)
+        console.log("📡 Réponse API:", response.status, response.statusText)
         
         if (response.ok) {
           const data = await response.json()
+          console.log("✅ Données reçues:", data)
           setTestimonials(Array.isArray(data) ? data : [])
         } else {
-          // Si l'endpoint n'existe pas ou nécessite une authentification (403/404),
-          // on affiche simplement une liste vide sans logger d'erreur
-          if (response.status !== 403 && response.status !== 404) {
-            const errorText = await response.text()
-            console.error("Erreur API:", response.status, errorText)
-          }
+          const errorText = await response.text()
+          console.error("❌ Erreur API:", response.status, errorText)
           setTestimonials([])
         }
       } catch (error) {
-        // Ne pas logger les erreurs de connexion pour un endpoint optionnel
+        console.error("❌ Erreur de connexion:", error)
         setTestimonials([])
       } finally {
         setIsLoading(false)
